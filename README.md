@@ -19,13 +19,15 @@ controls and [release notes](docs/release.md) for Windows build details.
 
 ## Install on Windows
 
-The locally built installer is `target/release/bundle/nsis/Threadmark_0.1.1_x64-setup.exe`.
-It installs for the current user. WebView2 must already be installed; the installer
+[Download the Windows 0.1.1 prerelease](https://github.com/Rhythm-Sanghi/Threadmark/releases/tag/v0.1.1).
+Choose `Threadmark_0.1.1_x64-setup.exe` for the desktop app, or
+`Threadmark-0.1.1-cli-x64.zip` for the portable CLI. The installer runs for the current user. WebView2 must already be installed; the installer
 never downloads a runtime. The build is unsigned. The bundled CLI is `threadmark.exe`
 in the installation folder; add that folder to PATH yourself if desired. There is
 also a portable CLI archive produced by `scripts/package-release.ps1`.
-Downloadable releases are not available yet. You can build from source using the
-steps below.
+Release assets include source and SHA256 checksums. This is an unsigned early
+release candidate; see [known limits](STATUS.md) before relying on its results.
+You can also build from source using the steps below.
 
 ## First repository
 

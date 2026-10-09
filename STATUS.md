@@ -2,6 +2,8 @@
 
 Threadmark 0.1.1 is an early Windows release candidate. Source is available at
 [Rhythm-Sanghi/Threadmark](https://github.com/Rhythm-Sanghi/Threadmark).
+The installer, portable CLI, source and checksums are available in the
+[0.1.1 prerelease](https://github.com/Rhythm-Sanghi/Threadmark/releases/tag/v0.1.1).
 
 ## Working features
 

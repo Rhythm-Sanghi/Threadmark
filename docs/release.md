@@ -2,7 +2,8 @@
 
 Version 0.1.1 is an unsigned Windows release candidate. Source is published at
 [Rhythm-Sanghi/Threadmark](https://github.com/Rhythm-Sanghi/Threadmark).
-A downloadable GitHub Release is not available yet.
+Download the installer, portable CLI, source and checksums from the
+[0.1.1 prerelease](https://github.com/Rhythm-Sanghi/Threadmark/releases/tag/v0.1.1).
 
 ## Local checks
 

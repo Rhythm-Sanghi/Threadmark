@@ -7,8 +7,7 @@ resource budgets, editor launch and local data handling are documented in
 script non-execution, Unicode, junction traversal and source-free default export.
 This project has not had an external security audit.
 
-The configured upstream is https://github.com/Rhythm-Sanghi/Threadmark.
-Its owner must enable GitHub private vulnerability reporting before public
-distribution; hosted configuration has not been verified from this workspace.
-Once enabled, report privately through the repository's Security tab.
-Avoid posting source code or credentials in public vulnerability reports.
+Report vulnerabilities privately through
+[GitHub private vulnerability reporting](https://github.com/Rhythm-Sanghi/Threadmark/security/advisories/new).
+Private reporting is enabled for this repository. Avoid posting source code or
+credentials in public vulnerability reports.
