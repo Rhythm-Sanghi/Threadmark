@@ -72,10 +72,6 @@ for one-file update at 100,000 functions / 1,000 files; its peak was 681 MiB. Ra
 results: [main workload](benchmark-windows.json) and
 [dense workload](benchmark-symbol-dense-windows.json).
 
-The installed native WebView displayed a real nine-node neighborhood within the
-263 ms keyboard-input-to-screenshot observation. This includes input automation,
-IPC and screenshot overhead, is one sample, and is **not** a WebView frame-time
-profile. Map pan/zoom, evidence and keyboard navigation were reviewed on actual
-engine results. Desktop views request at most 24 nodes. Maximum-size frame-time
-and long-session memory profiling remain unmeasured.
-See [native observation](native-map-observation.json) and screenshots.
+Desktop views request at most 24 nodes. Pan, zoom, evidence and keyboard navigation
+have been checked against engine results. Maximum-size frame times and
+long-session desktop memory use have not been measured.

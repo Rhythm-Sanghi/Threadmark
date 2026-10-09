@@ -1,75 +1,56 @@
-# Release validation
+# Windows release notes
 
-The current local 0.1.1 candidate also includes the Workshop Grid interface update.
-Frontend checks and the final native build were repeated on 2026-10-08. The
-[redesign record](workshop-grid.md) and [native captures](screenshots/workshop-grid/README.md)
-describe the actual views, themes and narrow-window review. This remains a local
-unsigned candidate, with the same engine/storage contracts.
+Version 0.1.1 is an unsigned Windows release candidate. Source is published at
+[Rhythm-Sanghi/Threadmark](https://github.com/Rhythm-Sanghi/Threadmark).
+A downloadable GitHub Release is not available yet.
 
-Validated locally on Windows 11 x64 on 2026-10-07. Tauri production/NSIS build
-completed, then the unsigned current-user installer installed into
-artifacts/installed. Installed desktop and bundled CLI launched. Installed files
-include both executables, GPL LICENSE and THIRD-PARTY-NOTICES.txt; current-user
-registration reports Threadmark 0.1.1. Existing WebView2 is required and installer
-runtime downloads are disabled. No public hosting or release publication occurred.
+## Local checks
 
-The existing 0.1.0 installation upgraded to 0.1.1 with schema 2→3 migration and
-repository/theme preservation. `scripts/verify-installer.ps1` then validated
-current-user upgrade, uninstall and reinstall, registration, installed binary
-payloads and unchanged user data on uninstall. Its repeatable test requires the
-app to be closed and refuses installations outside this project's artifacts
-folder. The final machine report records the repeated 0.1.1 lifecycle:
-[installer lifecycle](installer-lifecycle-windows-0.1.1.json).
+The Windows 11 x64 build and NSIS installer were checked on 2026-10-07–08.
+The installer includes the desktop app, CLI, GPL license and dependency notices.
+It installs for the current user and requires an existing WebView2 runtime.
 
-Native checks used actual indexed source and Git objects: Ctrl+K/Enter search,
-node/edge evidence, impact, detected related tests, working-tree changes and
-removed-call baseline evidence, unresolved diagnostics, fit/zoom, Shift+F10 node
-actions, and watch start/update/stop. A source edit reparsed one file and reused
-eight. The original source was restored. The configured editor opened forecast.ts
-in Notepad with custom CLI arguments. VS Code positional opening remains unverified
-on this host. Native JSON save was verified to omit edge snippets and free-form
-diagnostic messages. These checks supplement, rather than replace, automated
-engine and frontend tests.
+Upgrade from 0.1.0 migrated the database from schema 2 to 3 and preserved the
+selected repository and theme. `scripts/verify-installer.ps1` checks upgrade,
+uninstall/reinstall, registration, binary payloads and preservation of user data.
+It requires the app to be closed and refuses installations outside artifacts/installed.
+The [lifecycle report](installer-lifecycle-windows-0.1.1.json) contains the results.
 
-[Screenshots](screenshots/README.md) show installed native screens; their underlying
-repository contains TypeScript, JSX, Python and an actual local Git baseline.
-Generated benchmark sources are measured separately; [performance](performance.md)
-reports exact workloads and limits. Runtime CSP and dependency review found no
-network plugin, remote asset, hosted font or telemetry client. No active source
-upload or repository-code execution path is included. Offline behavior was reviewed
-from the production bundle and implemented boundaries; machine connectivity was
-not disabled for a separate network-disconnection test.
+Native checks covered search, map navigation, source and relationship evidence,
+impact, related tests, Git changes, removed-symbol evidence, diagnostics, file
+watching, metadata export, light/dark themes and narrow windows. Notepad opening
+was checked; VS Code positional navigation has not been verified on this host.
+The development console showed no application exceptions.
 
-Run scripts/package-release.ps1 after production builds. It produces installer,
-portable CLI, corresponding project source and SHA256 checksums under artifacts/release.
-Publish corresponding source and dependency notices with GPL binary distribution.
-Building requires dependency and NSIS-tool downloads initially; installed runtime
-analysis is local. Trusted code signing, hosted CI execution, other OSes
-and an external security audit are not claimed as validated. See STATUS.md.
+On 2026-10-09, 38 Rust tests and 17 frontend tests passed, along with frontend
+lint, type checking and the production frontend build. See [project status](../STATUS.md)
+and [performance](performance.md) for known limits and measured workloads.
 
-## Upstream and unsigned candidates
+## Build and package
 
-Git origin is https://github.com/Rhythm-Sanghi/Threadmark.git. The manually
-dispatched `.github/workflows/release.yml` builds, checks and uploads Windows
-installer, CLI, corresponding source, notices and checksums. It does not publish
-a GitHub Release. Commit/push the reviewed project before running it in GitHub;
-the local definition has not yet been exercised on a hosted runner.
+Use PowerShell 7 and the prerequisites in the README. Build the release CLI,
+then run `npm run tauri build` in apps/desktop. From the repository root, run
+`scripts/generate-notices.ps1` and `scripts/package-release.ps1`. Archives and
+SHA256 checksums are written to artifacts/release. Include corresponding source
+and dependency notices when distributing GPL binaries.
 
-Without signing secrets it produces an explicitly unsigned development/release
-candidate. Unsigned candidates are acceptable for current testing. Trusted public
-Windows signing remains a release blocker until a real certificate is obtained.
-No certificate thumbprint is invented or stored in source.
+The Checks workflow runs on pushes and pull requests. The manually dispatched
+Windows release candidate workflow builds and uploads installer, CLI, source,
+notices and checksums as workflow artifacts; it does not create a GitHub Release.
 
-To enable signing later, configure repository secrets `SIGNING_PFX_BASE64` and
-`SIGNING_PFX_PASSWORD`, and the optional variable `SIGNING_TIMESTAMP_URL` (HTTPS
-RFC 3161 service). The runner imports the certificate into its ephemeral current
-user store, derives its thumbprint, calls `scripts/sign-release.ps1`, validates
-CLI/desktop/installer Authenticode signatures and removes the temporary PFX and
-imported signing certificate. A certificate without a trusted chain, usable
-private key, current validity or code-signing usage is rejected. Hardware-backed
-providers can use the local script with an installed certificate and SDK SignTool.
+## Signing
 
-Local signing: `./scripts/sign-release.ps1 -CertificateThumbprint $thumbprint
--TimestampUrl $timestampUrl`. Keep certificate files, passwords and keys outside
-the repository. Local unsigned build: build the release CLI, run `npm run tauri
-build` in apps/desktop, then run `scripts/package-release.ps1` at project root.
+Without signing secrets, builds remain unsigned. Trusted Windows signing requires
+a real code-signing certificate. Keep certificate files and passwords outside Git.
+
+To sign in CI, configure `SIGNING_PFX_BASE64` and `SIGNING_PFX_PASSWORD` secrets,
+and optionally `SIGNING_TIMESTAMP_URL` with an HTTPS RFC 3161 service. The workflow
+imports the certificate temporarily, derives its thumbprint, validates signatures
+and removes the temporary certificate and PFX. No thumbprint is hard-coded.
+
+For local signing, use `scripts/sign-release.ps1 -CertificateThumbprint $thumbprint
+-TimestampUrl $timestampUrl` with an installed certificate and SDK SignTool.
+Hardware-backed certificates can use the local script.
+
+Linux/macOS, multi-hour desktop sessions and maximum-size WebView frame times
+remain unvalidated. The project has not had an external security audit.

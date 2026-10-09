@@ -2,20 +2,20 @@
 
 Threadmark maps relationships inside a codebase: what depends on a symbol,
 which code is reachable from a change, and which tests have detected relationships.
-It is a Windows desktop application and a first-class CLI sharing one Rust engine.
-Analysis is local and static. No account, model, telemetry or source upload is used.
+The Windows app and CLI share a Rust analysis engine. Everything runs locally;
+Threadmark does not upload source code or execute repository scripts.
 
-The early 0.1.1 implementation includes JS/TS and Python indexing, search,
+Version 0.1.1 supports JS/TS and Python indexing, search,
 directed neighborhoods, evidence, path tracing, reverse impact, local Git baseline
 comparison, test discovery, Express routes, JSX references and optional watching.
 See [STATUS.md](STATUS.md) for validation and precise limitations. Static reachability
 is not a runtime prediction or a guarantee of test coverage.
 
-![Threadmark Workshop Grid relationship map](docs/screenshots/workshop-grid/map-dark.jpg)
+![Threadmark relationship map](docs/screenshots/map-dark.png)
 
-[Native screenshots](docs/screenshots/README.md) show real indexed source and Git
-evidence. The [Workshop Grid redesign](docs/workshop-grid.md) records the
-current interface, theme system and workflow validation. The [release validation](docs/release.md) records installer checks.
+[Screenshots](docs/screenshots/README.md) cover the map, source evidence, changes,
+impact, tests and diagnostics. See [interface](docs/interface.md) for keyboard
+controls and [release notes](docs/release.md) for Windows build details.
 
 ## Install on Windows
 
@@ -24,7 +24,8 @@ It installs for the current user. WebView2 must already be installed; the instal
 never downloads a runtime. The build is unsigned. The bundled CLI is `threadmark.exe`
 in the installation folder; add that folder to PATH yourself if desired. There is
 also a portable CLI archive produced by `scripts/package-release.ps1`.
-No remote release has been published from this workspace.
+Downloadable releases are not available yet. You can build from source using the
+steps below.
 
 ## First repository
 
@@ -106,8 +107,8 @@ Packaged outputs and SHA256 checksums are under `artifacts/release`.
 
 ## Scope and evidence
 
-Runtime reflection, computed imports, arbitrary method dispatch, inherited tsconfig
-settings and dynamic framework behavior can be unresolved. Diagnostics expose
+Runtime reflection, computed imports, arbitrary method dispatch, package-based tsconfig
+inheritance and dynamic framework behavior can be unresolved. Diagnostics expose
 blind spots; partial indexes and bounded results are marked. Syntax-based routes
 show declared paths, not proven mounted URLs. Renames appear as added/removed IDs.
 No repository scripts, tests, installers, modules, hooks or plugins execute during
@@ -120,4 +121,3 @@ Read [architecture](docs/architecture.md), [indexing](docs/indexing.md),
 [watching](docs/watching.md), [security](docs/security.md) and
 [performance](docs/performance.md). See [LICENSE](LICENSE) and
 [dependency licenses](docs/dependencies.md).
-

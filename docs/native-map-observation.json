@@ -1,6 +1,0 @@
-{
-  "schema_version": 1,
-  "nodes": 9,
-  "keyboard_to_screenshot_ms": 263.31910000089556,
-  "measurement": "Sky Enter input + screenshot capture; includes automation and capture overhead; screenshot shows real native map. Not a WebView frame profiler."
-}

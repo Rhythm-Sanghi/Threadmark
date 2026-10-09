@@ -1,11 +1,10 @@
 # Contributing
 
-Start with README.md and STATUS.md. Keep changes within the current stage.
-Add semantic tests for real behavior, including failures. Rust owns analysis and
-persistence; frontend code presents client contracts. Do not add accounts,
-telemetry, network analysis or execution of repository code.
+See the README for setup and checks, and STATUS.md for current limitations.
+Rust owns analysis and persistence; the frontend presents the engine's results.
 
-Run the documented checks before proposing a change. Include what changed, why,
-and the checks you ran. Keep dependencies deliberate and check their licenses.
-Avoid placeholder adapters and controls that do not perform an action.
+Include tests for changed behavior and failures. Run the documented checks before
+opening a pull request, and describe the change and how you tested it.
 
+Keep analysis local and static. Do not execute repository code or add telemetry.
+Check dependency licenses before adding packages.

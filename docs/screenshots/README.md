@@ -1,28 +1,21 @@
-# Native screenshots
+# Screenshots
 
-[Workshop Grid screenshots](workshop-grid/README.md) show the current redesign
-from the real release app and an 800-pixel native development window.
+Current Threadmark interface, captured at 2× pixel density in lossless PNG format.
+The wide views are 2880 × 1800 pixels; narrow views are 1600 × 1400.
 
-Captured from the installed Windows 0.1.0 application, not a browser mockup.
-The [0.1.1 map](map-0.1.1.jpg) was captured after upgrade, uninstall/reinstall,
-schema migration and a fresh native re-index on 2026-10-07. The other captures
-remain the original 0.1.0 workflow review.
-The indexed forecast-service repository has nine actual JS/TS/JSX/Python sources,
-a local Git baseline, two changed source files and a removed obsolete function.
-Native engine results contain 20 nodes, 40 relationships and seven unresolved
-external/runtime diagnostics. No package installation or repository script ran.
+The frontend is rendered in Chromium using responses recorded from Threadmark's
+Rust engine against local example repositories. Source, relationships, diagnostics
+and Git comparison results come from those indexes. These captures show the UI;
+native Windows verification is described in [release notes](../release.md).
 
-- [First open](first-open.jpg)
-- [Focused neighborhood](map.jpg) and [fit selection](map-fit.jpg)
-- [Call evidence](evidence.jpg)
-- [Reverse impact](impact.jpg)
-- [Detected related tests and evidence](tests.jpg)
-- [Git changes](changes.jpg)
-- [Removed call from baseline](baseline-evidence.jpg)
-- [Diagnostics](diagnostics.jpg)
-- [Watching after a real edit](watching.jpg)
-
-The screenshots include the test repository's local absolute path. The cursor
-highlight is produced by the capture environment. Fit selection intentionally
-shrinks larger neighborhoods; zoom or refocus to read labels. Full qualified names,
-file paths and source spans are available in the inspector and accessible names.
+- [Welcome](welcome-dark.png)
+- [Relationship map](map-dark.png)
+- [Source evidence](evidence-dark.png)
+- [Git changes](changes-dark.png)
+- [Settings](settings-light.png)
+- [Change impact](impact-light.png)
+- [Related tests](tests-light.png)
+- [Diagnostics](diagnostics-light.png)
+- [Narrow map](map-narrow-dark.png)
+- [Inspector drawer](inspector-narrow-dark.png)
+- [Full-name neighborhood list](neighborhood-list-dark.png)
