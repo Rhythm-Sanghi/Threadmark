@@ -1,0 +1,12 @@
+{
+  "date": "2026-10-07",
+  "rust_vulnerability_advisories": 0,
+  "warnings_in_windows_target": false,
+  "version": "0.1.1",
+  "external_security_audit": false,
+  "npm_vulnerabilities": 0,
+  "rust_informational_warnings": [
+    "RUSTSEC-2024-0370: proc-macro-error 1.0.4 unmaintained",
+    "RUSTSEC-2024-0429: glib 0.18.5 unsound"
+  ]
+}

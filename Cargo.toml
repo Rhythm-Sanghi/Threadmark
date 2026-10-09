@@ -1,0 +1,20 @@
+[workspace]
+members = ["crates/threadmark-core", "crates/threadmark-db", "crates/threadmark-cli", "apps/desktop/src-tauri"]
+default-members = ["crates/threadmark-core", "crates/threadmark-db", "crates/threadmark-cli"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.1"
+edition = "2024"
+license = "GPL-3.0-or-later"
+rust-version = "1.98"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+threadmark-core = { path = "crates/threadmark-core" }
+threadmark-db = { path = "crates/threadmark-db" }
+

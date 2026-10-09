@@ -1,0 +1,58 @@
+{
+  "cycles": 120,
+  "elapsed_seconds": 52.2087505,
+  "files": 1000,
+  "functions": 10000,
+  "samples": [
+    {
+      "iteration": 10,
+      "working_set_bytes": 38260736
+    },
+    {
+      "iteration": 20,
+      "working_set_bytes": 40660992
+    },
+    {
+      "iteration": 30,
+      "working_set_bytes": 39329792
+    },
+    {
+      "iteration": 40,
+      "working_set_bytes": 40620032
+    },
+    {
+      "iteration": 50,
+      "working_set_bytes": 43491328
+    },
+    {
+      "iteration": 60,
+      "working_set_bytes": 40689664
+    },
+    {
+      "iteration": 70,
+      "working_set_bytes": 43782144
+    },
+    {
+      "iteration": 80,
+      "working_set_bytes": 42397696
+    },
+    {
+      "iteration": 90,
+      "working_set_bytes": 40882176
+    },
+    {
+      "iteration": 100,
+      "working_set_bytes": 40656896
+    },
+    {
+      "iteration": 110,
+      "working_set_bytes": 42033152
+    },
+    {
+      "iteration": 120,
+      "working_set_bytes": 43888640
+    }
+  ],
+  "schema_version": 1,
+  "scope": "Repeated index/cache/adjacency/impact lifecycle. Not a multi-hour native UI soak."
+}

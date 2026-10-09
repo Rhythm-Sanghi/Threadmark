@@ -1,0 +1,11 @@
+{
+  "installation": "C:\\Users\\Test\\Documents\\Threadmark\\artifacts\\installed",
+  "data_preserved": true,
+  "version": "0.1.1",
+  "upgrade": true,
+  "reinstall": true,
+  "uninstall": true,
+  "database_schema": 3,
+  "previous_version": "0.1.1",
+  "signature": "NotSigned"
+}

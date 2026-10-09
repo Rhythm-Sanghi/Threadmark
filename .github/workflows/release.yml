@@ -1,0 +1,96 @@
+name: Windows release candidate
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - name: Install repository-pinned Rust toolchain
+        run: rustup show
+      - name: Check frontend
+        working-directory: apps/desktop
+        run: |
+          npm ci
+          if ($LASTEXITCODE) { throw 'Dependency install failed' }
+          npm run lint
+          if ($LASTEXITCODE) { throw 'Lint failed' }
+          npm run typecheck
+          if ($LASTEXITCODE) { throw 'Typecheck failed' }
+          npm test
+          if ($LASTEXITCODE) { throw 'Tests failed' }
+          npm run build
+          if ($LASTEXITCODE) { throw 'Frontend build failed' }
+      - name: Check Rust and build bundled CLI
+        run: |
+          cargo build --release -p threadmark-cli --locked
+          if ($LASTEXITCODE) { throw 'CLI build failed' }
+          cargo fmt --all -- --check
+          if ($LASTEXITCODE) { throw 'Formatting failed' }
+          cargo clippy --workspace --all-targets --locked -- -D warnings
+          if ($LASTEXITCODE) { throw 'Clippy failed' }
+          cargo test --workspace --locked
+          if ($LASTEXITCODE) { throw 'Rust tests failed' }
+          ./scripts/generate-notices.ps1
+      - name: Check dependency advisories
+        run: |
+          New-Item -ItemType Directory -Force artifacts | Out-Null
+          cargo install cargo-audit --locked
+          if ($LASTEXITCODE) { throw 'Advisory tool installation failed' }
+          cargo audit --json | Set-Content artifacts/security-audit.json
+          if ($LASTEXITCODE) { throw 'Rust vulnerability advisory check failed' }
+          Push-Location apps/desktop
+          try {
+            npm audit --json | Set-Content ../../artifacts/npm-security-audit.json
+            if ($LASTEXITCODE) { throw 'npm vulnerability advisory check failed' }
+          } finally { Pop-Location }
+      - name: Build unsigned or signed release candidate
+        env:
+          SIGNING_PFX_BASE64: ${{ secrets.SIGNING_PFX_BASE64 }}
+          SIGNING_PFX_PASSWORD: ${{ secrets.SIGNING_PFX_PASSWORD }}
+          SIGNING_TIMESTAMP_URL: ${{ vars.SIGNING_TIMESTAMP_URL }}
+        run: |
+          New-Item -ItemType Directory -Force artifacts | Out-Null
+          if (-not $env:SIGNING_PFX_BASE64) {
+            Push-Location apps/desktop
+            try {
+              npm run tauri build
+              if ($LASTEXITCODE) { throw 'Native build failed' }
+            } finally { Pop-Location }
+            ./scripts/package-release.ps1
+            'Unsigned development/release-candidate build. Trusted public Windows signing remains blocked until a real certificate is configured.' | Set-Content artifacts/release/SIGNING-STATUS.txt
+          } else {
+            if (-not $env:SIGNING_PFX_PASSWORD) { throw 'SIGNING_PFX_PASSWORD is required when a certificate is supplied' }
+            $pfxPath = Join-Path $env:RUNNER_TEMP ([guid]::NewGuid().ToString('N') + '.pfx')
+            $certificate = $null
+            try {
+              [IO.File]::WriteAllBytes($pfxPath, [Convert]::FromBase64String($env:SIGNING_PFX_BASE64))
+              $password = ConvertTo-SecureString $env:SIGNING_PFX_PASSWORD -AsPlainText -Force
+              $certificate = Import-PfxCertificate -FilePath $pfxPath -CertStoreLocation Cert:\CurrentUser\My -Password $password | Where-Object HasPrivateKey | Select-Object -First 1
+              if (-not $certificate) { throw 'No signing private key was imported' }
+              ./scripts/sign-release.ps1 -CertificateThumbprint $certificate.Thumbprint -TimestampUrl $env:SIGNING_TIMESTAMP_URL
+              'Authenticode signatures validated by the signing script.' | Set-Content artifacts/release/SIGNING-STATUS.txt
+            } finally {
+              if (Test-Path -LiteralPath $pfxPath) { Remove-Item -LiteralPath $pfxPath -Force }
+              if ($certificate) { Remove-Item -LiteralPath ('Cert:\CurrentUser\My\' + $certificate.Thumbprint) -Force }
+            }
+          }
+          Copy-Item artifacts/security-audit.json,artifacts/npm-security-audit.json artifacts/release
+          Get-ChildItem artifacts/release -File | Where-Object Name -ne SHA256SUMS.txt | Get-FileHash -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLowerInvariant())  $([IO.Path]::GetFileName($_.Path))" } | Set-Content artifacts/release/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Threadmark-windows-release-candidate
+          path: artifacts/release/*
+          if-no-files-found: error

@@ -1,0 +1,17 @@
+import { EmptyState, PageHeading } from './ui';
+import { useEffect,useState } from 'react';
+import { api } from './api';
+import type { Edge,Impact,ImpactItem } from './api';
+
+export function ImpactRows({ title,items,onNode,onEdge }: { title: string;items: ImpactItem[];onNode: (id: string) => void;onEdge: (edge: Edge) => void }) {
+  return <section className="impact-group"><h2>{title} · {items.length}</h2>{items.length === 0 && <EmptyState title="No detected relationships." />}{items.map(item => <article key={item.node.id}><div className="impact-row-heading"><button className="text-button" onClick={() => onNode(item.node.id)}>{item.node.qualified_name}</button><span className="hint">{item.hops} {item.hops === 1 ? 'hop' : 'hops'}</span></div><p className="path">{item.node.path}:{item.node.span.line}</p><details><summary>Evidence path</summary>{item.evidence_path.map(edge => <button key={edge.id} className="evidence-row" onClick={() => onEdge(edge)}><strong>{edge.kind} · {edge.confidence}</strong><span className="path">{edge.path}:{edge.span.line}</span><code>{edge.evidence}</code></button>)}</details></article>)}</section>;
+}
+
+export function ImpactPanel({ selector,onNode,onEdge,onError,testsOnly=false }: { selector?: string;onNode: (id: string) => void;onEdge: (edge: Edge) => void;onError: (error: string) => void;testsOnly?:boolean }) {
+  const [impact,setImpact] = useState<Impact>();
+  const [depth,setDepth] = useState(8);
+  const [kind,setKind] = useState('');
+  useEffect(() => { if (!selector) return; let active = true; setImpact(undefined); api.impact(selector,depth,kind ? [kind] : []).then(impact => { if (active) setImpact(impact); }).catch(error => { if (active) onError(String(error)); }); return () => { active = false; }; },[selector,depth,kind,onError]);
+  return <div className="analysis-panel"><PageHeading title={testsOnly ? 'Detected related tests' : 'Change impact'} description={testsOnly ? 'Tests connected to the selected source through detected relationships. This is not a coverage report.' : 'Follow dependencies back to the code that could be reached by a change.'} />{!selector ? <EmptyState title="Select a file or symbol on the map first.">Use the repository tree or Ctrl+K to choose a starting point.</EmptyState> : <><div className="analysis-controls"><label>Depth <select name="impact-depth" value={depth} onChange={event => setDepth(Number(event.target.value))}>{[1,2,4,8,16,32].map(value => <option key={value}>{value}</option>)}</select></label><label>Relationship <select name="impact-relationship" value={kind} onChange={event => setKind(event.target.value)}><option value="">All supported relationships</option>{['CALLS','IMPORTS','REFERENCES','USES_TYPE','ROUTES_TO','TESTS'].map(kind => <option key={kind}>{kind}</option>)}</select></label></div>{!impact ? <p role="status">Following detected relationships…</p> : <><p className="path">{impact.targets.map(node => `${node.path}#${node.qualified_name}`).join(', ')}</p><p className="hint">Reachable through static relationships. This does not guarantee runtime impact.</p>{impact.truncated && <p role="status">Traversal or result limit reached. The list is incomplete.</p>}{(testsOnly ? [['Detected related tests',impact.related_tests]] as const : [['Direct',impact.direct],['Transitive',impact.transitive],['Possible',impact.possible],['Detected related tests',impact.related_tests]] as const).map(([title,items]) => <ImpactRows key={title} title={title} items={items} onNode={onNode} onEdge={onEdge} />)}</>}</> }</div>;
+}
+

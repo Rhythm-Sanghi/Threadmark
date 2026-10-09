@@ -1,0 +1,15 @@
+/target/
+**/node_modules/
+**/dist/
+**/coverage/
+*.db
+*.db-shm
+*.db-wal
+/artifacts/
+*.pfx
+*.p12
+apps/desktop/src-tauri/gen/
+apps/desktop/src-tauri/icons/*
+!apps/desktop/src-tauri/icons/icon.ico
+!apps/desktop/src-tauri/icons/icon.png
+!apps/desktop/src-tauri/icons/32x32.png
