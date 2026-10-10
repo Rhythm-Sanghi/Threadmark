@@ -42,4 +42,4 @@ warnings RUSTSEC-2024-0370 (unmaintained proc-macro-error 1.0.4) and
 RUSTSEC-2024-0429 (unsound glib 0.18.5); neither package is present in the Windows
 target graph. These remain relevant before a Linux release. This dependency
 check does not establish that the application is free of security defects.
-See [audit summary](security-audit-windows-0.1.1.json).
+See [dependency advisory summary](evidence/security-audit-windows-0.1.1.json).
