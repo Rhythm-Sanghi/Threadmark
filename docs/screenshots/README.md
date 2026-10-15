@@ -1,5 +1,17 @@
 # Screenshots
 
+Native Windows captures from the rebuilt application on 2026-10-15 (JPEG output
+from the Windows capture helper, at its actual capture size):
+
+- [Narrow relationship map](hardening-map-narrow-dark.jpg)
+- [Narrow Settings and local storage](hardening-settings-narrow-dark.jpg)
+
+These use the existing local forecast-service fixture index, dated 2026-10-08.
+They show the current application reading an existing index, not a fresh indexing
+benchmark. Neither screenshot is a generated mockup.
+
+## Historical frontend captures
+
 Current Threadmark interface, captured at 2× pixel density in lossless PNG format.
 The wide views are 2880 × 1800 pixels; narrow views are 1600 × 1400.
 
