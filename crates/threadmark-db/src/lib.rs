@@ -88,6 +88,15 @@ impl Database {
             .optional()?)
     }
 
+    pub fn snapshot_with_revision(&self, root: &str) -> Result<Option<(String, i64)>, Error> {
+        // One SQLite statement observes one committed revision. Reading these
+        // separately can label an old graph with a newer writer's revision.
+        Ok(self.0.query_row(
+            "SELECT r.snapshot, COALESCE(v.revision, 0) FROM repositories r LEFT JOIN index_revisions v ON v.root=r.root WHERE r.root=?1",
+            [root], |row| Ok((row.get(0)?, row.get(1)?)),
+        ).optional()?)
+    }
+
     pub fn repositories(&self) -> Result<Vec<(String, i64)>, Error> {
         let mut statement = self
             .0
@@ -118,6 +127,29 @@ impl Database {
         adapter: &str,
         files: &[(String, String, Option<String>)],
     ) -> Result<(), Error> {
+        self.save_index_with_selection(root, timestamp, snapshot, adapter, files, true)
+    }
+
+    pub fn save_index_preserving_selection(
+        &self,
+        root: &str,
+        timestamp: i64,
+        snapshot: &str,
+        adapter: &str,
+        files: &[(String, String, Option<String>)],
+    ) -> Result<(), Error> {
+        self.save_index_with_selection(root, timestamp, snapshot, adapter, files, false)
+    }
+
+    fn save_index_with_selection(
+        &self,
+        root: &str,
+        timestamp: i64,
+        snapshot: &str,
+        adapter: &str,
+        files: &[(String, String, Option<String>)],
+        select: bool,
+    ) -> Result<(), Error> {
         let transaction = self.0.unchecked_transaction()?;
         transaction.execute("INSERT INTO repositories(root,indexed_at,snapshot) VALUES (?1,?2,?3) ON CONFLICT(root) DO UPDATE SET indexed_at=excluded.indexed_at,snapshot=excluded.snapshot", rusqlite::params![root, timestamp, snapshot])?;
         transaction.execute("INSERT INTO index_revisions(root,revision) VALUES (?1,1) ON CONFLICT(root) DO UPDATE SET revision=index_revisions.revision+1", [root])?;
@@ -136,14 +168,18 @@ impl Database {
             }
         }
         {
-            let mut insert = transaction.prepare("INSERT INTO parsed_files(root,path,content_hash,adapter_version,parsed) VALUES (?1,?2,?3,?4,?5) ON CONFLICT(root,path) DO UPDATE SET content_hash=excluded.content_hash,adapter_version=excluded.adapter_version,parsed=excluded.parsed WHERE parsed_files.content_hash!=excluded.content_hash OR parsed_files.adapter_version!=excluded.adapter_version")?;
+            // Some(parsed) means core actually parsed this file, including repair
+            // of malformed cache JSON with an otherwise unchanged hash/version.
+            let mut insert = transaction.prepare("INSERT INTO parsed_files(root,path,content_hash,adapter_version,parsed) VALUES (?1,?2,?3,?4,?5) ON CONFLICT(root,path) DO UPDATE SET content_hash=excluded.content_hash,adapter_version=excluded.adapter_version,parsed=excluded.parsed")?;
             for (path, hash, parsed) in files {
                 if let Some(parsed) = parsed {
                     insert.execute(rusqlite::params![root, path, hash, adapter, parsed])?;
                 }
             }
         }
-        transaction.execute("INSERT INTO settings(key,value) VALUES ('repository',?1) ON CONFLICT(key) DO UPDATE SET value=excluded.value", [root])?;
+        if select {
+            transaction.execute("INSERT INTO settings(key,value) VALUES ('repository',?1) ON CONFLICT(key) DO UPDATE SET value=excluded.value", [root])?;
+        }
         transaction.commit()?;
         Ok(())
     }
@@ -152,6 +188,61 @@ impl Database {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn snapshot_and_revision_stay_paired_during_concurrent_publication() {
+        use std::sync::{
+            Arc,
+            atomic::{AtomicBool, Ordering},
+        };
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("revisions.db");
+        let reader = Database::open(&path).unwrap();
+        reader.save_index("root", 1, "1", "adapter", &[]).unwrap();
+        let running = Arc::new(AtomicBool::new(true));
+        let writing = running.clone();
+        let worker = std::thread::spawn(move || {
+            let writer = Database::open(&path).unwrap();
+            for revision in 2..=100 {
+                writer
+                    .save_index("root", revision, &revision.to_string(), "adapter", &[])
+                    .unwrap();
+            }
+            writing.store(false, Ordering::Release);
+        });
+        while running.load(Ordering::Acquire) {
+            let (snapshot, revision) = reader.snapshot_with_revision("root").unwrap().unwrap();
+            assert_eq!(snapshot.parse::<i64>().unwrap(), revision);
+        }
+        worker.join().unwrap();
+        assert_eq!(
+            reader.snapshot_with_revision("root").unwrap().unwrap(),
+            ("100".into(), 100)
+        );
+    }
+
+    #[test]
+    fn repaired_cache_replaces_same_hash_and_failed_publication_rolls_back() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("atomic.db");
+        let db = Database::open(&path).unwrap();
+        let files = |parsed: &str| vec![("work.ts".into(), "hash".into(), Some(parsed.into()))];
+        db.save_index("root", 1, "previous", "adapter", &files("malformed"))
+            .unwrap();
+        db.save_index("root", 2, "repaired", "adapter", &files("valid"))
+            .unwrap();
+        assert_eq!(db.cached_files("root", "adapter").unwrap()[0].2, "valid");
+        let revision = db.index_revision("root").unwrap();
+        db.0.execute_batch("CREATE TRIGGER fail_cache BEFORE UPDATE ON parsed_files BEGIN SELECT RAISE(ABORT, 'injected write failure'); END;").unwrap();
+        assert!(
+            db.save_index("root", 3, "must not publish", "adapter", &files("new"))
+                .is_err()
+        );
+        assert_eq!(db.snapshot("root").unwrap().as_deref(), Some("repaired"));
+        assert_eq!(db.index_revision("root").unwrap(), revision);
+        assert_eq!(db.cached_files("root", "adapter").unwrap()[0].2, "valid");
+        assert_eq!(db.setting("repository").unwrap().as_deref(), Some("root"));
+    }
 
     #[test]
     fn schema_two_upgrade_preserves_snapshots_caches_and_settings() {

@@ -16,6 +16,21 @@ The installer, portable CLI, source and checksums are available in the
 
 ## Checks
 
+The local 2026-10-15 hardening candidate passed 53 Rust tests and 19 frontend
+tests, strict Clippy, formatting, frontend lint/type checks and Windows installer
+build checks. Same-version install, uninstall and reinstall preserved local data.
+See the [engineering handoff](docs/hardening-2026-10-15.md) for exact scope,
+measurements, native checks and remaining gaps. These source changes have not
+been published as a replacement for the existing 0.1.1 download.
+
+A subsequent [independent local qualification](docs/final-qualification-2026-10-15.md)
+corrected a repository-selection race and extended candidate hashes to the desktop
+executable. Its final source passed 54 Rust and 19 frontend tests. A disposable
+v0.1.0 installation migrated from database schema 2 to 3 and retained its selected
+repository, theme and graph queries after the new candidate was installed. The
+new local installer is unsigned and unpublished; native screen-reader, scaling,
+long-duration and stable-Windows qualification remain open.
+
 On 2026-10-09, all 38 Rust tests and 17 frontend tests passed, along with frontend
 lint, type checking and the production frontend build. Native app and installer
 checks passed on 2026-10-08, including upgrade, uninstall/reinstall and preservation

@@ -57,6 +57,35 @@ fn compares_local_objects_deleted_symbols_and_untracked_sources() {
             .any(|edge| edge.kind == "CALLS")
     );
     assert!(engine.compare("nonexistent-baseline").is_err());
+    let other = tempfile::tempdir().unwrap();
+    std::fs::write(
+        other.path().join("elsewhere.ts"),
+        "export function elsewhere() {}",
+    )
+    .unwrap();
+    Engine::open(Some(storage.path()))
+        .unwrap()
+        .index_repository(other.path(), &AtomicBool::new(false), |_| {})
+        .unwrap();
+    assert_eq!(
+        Engine::open(Some(storage.path()))
+            .unwrap()
+            .snapshot(None)
+            .unwrap()
+            .root,
+        other.path().canonicalize().unwrap().to_string_lossy()
+    );
+    // A comparison refreshes its own repository, but must not switch another
+    // instance's selected repository back after the user has moved on.
+    engine.compare("HEAD").unwrap();
+    assert_eq!(
+        Engine::open(Some(storage.path()))
+            .unwrap()
+            .snapshot(None)
+            .unwrap()
+            .root,
+        other.path().canonicalize().unwrap().to_string_lossy()
+    );
     assert_eq!(
         std::fs::read_to_string(root.join("work.ts")).unwrap(),
         "export function caller(){return 2;}"

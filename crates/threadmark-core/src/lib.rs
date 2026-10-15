@@ -138,13 +138,33 @@ impl Engine {
         &self,
         path: &Path,
         cancel: &std::sync::atomic::AtomicBool,
+        progress: impl FnMut(&model::Progress),
+    ) -> Result<model::Snapshot, Error> {
+        self.index_repository_with_selection(path, cancel, progress, true)
+    }
+
+    pub(crate) fn index_repository_preserving_selection(
+        &self,
+        path: &Path,
+        cancel: &std::sync::atomic::AtomicBool,
+        progress: impl FnMut(&model::Progress),
+    ) -> Result<model::Snapshot, Error> {
+        self.index_repository_with_selection(path, cancel, progress, false)
+    }
+
+    fn index_repository_with_selection(
+        &self,
+        path: &Path,
+        cancel: &std::sync::atomic::AtomicBool,
         mut progress: impl FnMut(&model::Progress),
+        select: bool,
     ) -> Result<model::Snapshot, Error> {
         let root = indexing::root(path)?;
         // The persisted index remains available on cancellation. Release the old
         // query graph before constructing a replacement to limit peak memory.
         *self.graph.borrow_mut() = None;
         let root_name = indexing::root_string(&root);
+        let started = std::time::Instant::now();
         let mut cache: std::collections::HashMap<String, (String, model::ParsedFile)> = self
             .database
             .cached_files(&root_name, parsing::ADAPTER_VERSION)?
@@ -152,23 +172,55 @@ impl Engine {
             .filter_map(|(path, hash, parsed)| {
                 serde_json::from_str(&parsed)
                     .ok()
+                    .filter(|parsed: &model::ParsedFile| {
+                        parsed.path == path
+                            && parsed.hash == hash
+                            && parsed
+                                .nodes
+                                .first()
+                                .is_some_and(|node| node.kind == "file" && node.path == path)
+                    })
                     .map(|parsed| (path, (hash, parsed)))
             })
             .collect();
+        tracing::debug!(
+            phase = "cache_load",
+            elapsed_ms = started.elapsed().as_secs_f64() * 1000.,
+            "Index phase"
+        );
         let cached_hashes: std::collections::HashMap<_, _> = cache
             .iter()
             .map(|(path, (hash, _))| (path.clone(), hash.clone()))
             .collect();
+        let started = std::time::Instant::now();
         let (mut snapshot, files) =
             indexing::discover_and_parse(&root, &mut cache, cancel, &mut progress)?;
+        tracing::debug!(
+            phase = "discovery_read_parse",
+            elapsed_ms = started.elapsed().as_secs_f64() * 1000.,
+            "Index phase"
+        );
         drop(cache);
+        let started = std::time::Instant::now();
         resolution::resolve(&root, &files, &mut snapshot);
+        tracing::debug!(
+            phase = "resolution",
+            elapsed_ms = started.elapsed().as_secs_f64() * 1000.,
+            "Index phase"
+        );
+        let started = std::time::Instant::now();
         snapshot.diagnostics.extend(cycles::diagnostics(&snapshot));
+        tracing::debug!(
+            phase = "cycles",
+            elapsed_ms = started.elapsed().as_secs_f64() * 1000.,
+            "Index phase"
+        );
         snapshot.progress.relationships = snapshot.edges.len();
         progress(&snapshot.progress);
         if cancel.load(std::sync::atomic::Ordering::Relaxed) {
             return Err(Error::Cancelled);
         }
+        let started = std::time::Instant::now();
         let stored = files
             .iter()
             .map(|file| {
@@ -183,13 +235,40 @@ impl Engine {
                 ))
             })
             .collect::<Result<Vec<_>, serde_json::Error>>()?;
-        self.database.save_index(
-            &root_name,
-            snapshot.indexed_at as i64,
-            &serde_json::to_string(&snapshot)?,
-            parsing::ADAPTER_VERSION,
-            &stored,
-        )?;
+        let snapshot_json = serde_json::to_string(&snapshot)?;
+        tracing::debug!(
+            phase = "serialization",
+            elapsed_ms = started.elapsed().as_secs_f64() * 1000.,
+            "Index phase"
+        );
+        // Serialization can take seconds for a large graph. Honour a cancel
+        // request received during that work before entering the transaction.
+        if cancel.load(std::sync::atomic::Ordering::Relaxed) {
+            return Err(Error::Cancelled);
+        }
+        let started = std::time::Instant::now();
+        if select {
+            self.database.save_index(
+                &root_name,
+                snapshot.indexed_at as i64,
+                &snapshot_json,
+                parsing::ADAPTER_VERSION,
+                &stored,
+            )?;
+        } else {
+            self.database.save_index_preserving_selection(
+                &root_name,
+                snapshot.indexed_at as i64,
+                &snapshot_json,
+                parsing::ADAPTER_VERSION,
+                &stored,
+            )?;
+        }
+        tracing::debug!(
+            phase = "sqlite_publication",
+            elapsed_ms = started.elapsed().as_secs_f64() * 1000.,
+            "Index phase"
+        );
         // Query adjacency is loaded lazily; do not duplicate the returned graph.
         *self.graph.borrow_mut() = None;
         *self.active_root.borrow_mut() = Some(root_name);
@@ -208,10 +287,14 @@ impl Engine {
                     Error::Analysis("No repository indexed. Run threadmark index <path>".into())
                 })?,
         };
-        let json = self.database.snapshot(&root)?.ok_or_else(|| {
+        Ok(self.load_snapshot(&root)?.0)
+    }
+
+    fn load_snapshot(&self, root: &str) -> Result<(model::Snapshot, i64), Error> {
+        let (json, revision) = self.database.snapshot_with_revision(root)?.ok_or_else(|| {
             Error::Analysis(format!("No index for {root}. Run threadmark index <path>"))
         })?;
-        Ok(serde_json::from_str(&json)?)
+        Ok((serde_json::from_str(&json)?, revision))
     }
 
     pub fn repositories(&self) -> Result<Vec<(String, i64)>, Error> {
@@ -249,9 +332,9 @@ impl Engine {
                 Error::Analysis("No repository indexed. Run threadmark index <path>".into())
             })?;
         let revision = self.database.index_revision(&root)?.unwrap_or(0);
-        *self.active_root.borrow_mut() = Some(root);
+        *self.active_root.borrow_mut() = Some(root.clone());
         if self.graph.borrow().is_none() || revision != self.graph_revision.get() {
-            let snapshot = self.snapshot(None)?;
+            let (snapshot, revision) = self.load_snapshot(&root)?;
             *self.graph.borrow_mut() = Some(graph::Graph::new(snapshot));
             self.graph_revision.set(revision);
         }
@@ -260,10 +343,10 @@ impl Engine {
     }
 
     pub fn select_repository(&self, path: &Path) -> Result<graph::Overview, Error> {
-        let snapshot = self.snapshot(Some(path))?;
+        let root = indexing::root_string(&indexing::root(path)?);
+        let (snapshot, revision) = self.load_snapshot(&root)?;
         self.database.set_setting("repository", &snapshot.root)?;
-        self.graph_revision
-            .set(self.database.index_revision(&snapshot.root)?.unwrap_or(0));
+        self.graph_revision.set(revision);
         *self.active_root.borrow_mut() = Some(snapshot.root.clone());
         *self.graph.borrow_mut() = Some(graph::Graph::new(snapshot));
         self.query(|graph| Ok(graph.overview()))

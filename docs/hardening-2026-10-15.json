@@ -1,0 +1,773 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-15",
+  "timezone": "Asia/Calcutta",
+  "baseline_commit": "1ff28c900bd875c90a42183feac43ff2d4f2dc54",
+  "runtime_candidate_commit": "c43b470417fc1716c064c6e51ed1f29b2fd605bb",
+  "machine": {
+    "os": "Windows 11 Pro Insider Preview 10.0.26220",
+    "cpu": "Intel Core i7-1365U",
+    "logical_processors": 12,
+    "reported_ram_gib": 15.66,
+    "rust": "1.98.1",
+    "node": "24.15.0",
+    "npm": "11.12.1",
+    "msvc": "14.44.35207",
+    "sdk_nuget": "10.0.26100.3916"
+  },
+  "method": {
+    "iterations": 3,
+    "order": "baseline then changed, alternating",
+    "fixture": "10 functions per TS module; directed calls; one exported entry per module",
+    "cold_definition": "new database; filesystem cache not flushed",
+    "concurrent_builds_or_native_ui_during_pairs": false,
+    "peak_memory_scope": "process high-water mark, cumulative across sizes",
+    "allocations_profiled": false
+  },
+  "before": [
+    {
+      "fixture": "10 functions per TS module; directed calls; one exported entry per module",
+      "runs": [
+        {
+          "cold_ms": 114.8587,
+          "database_bytes": 3362816,
+          "edges": 2000,
+          "files": 100,
+          "functions": 1000,
+          "graph_load_ms": 9.189499999999999,
+          "impact_ms": 0.1486,
+          "impact_results": 8,
+          "impact_truncated": true,
+          "nodes": 1100,
+          "one_file_update_ms": 82.0019,
+          "parsed": 1,
+          "peak_working_set_bytes": 20307968,
+          "reused": 99,
+          "search_ms": 2.3059,
+          "search_results": 100,
+          "slice_ms": 0.12449999999999999,
+          "slice_nodes": 3,
+          "unchanged_ms": 69.56,
+          "unchanged_reused": 100
+        },
+        {
+          "cold_ms": 851.2917,
+          "database_bytes": 33423360,
+          "edges": 20000,
+          "files": 1000,
+          "functions": 10000,
+          "graph_load_ms": 74.3988,
+          "impact_ms": 0.162,
+          "impact_results": 8,
+          "impact_truncated": true,
+          "nodes": 11000,
+          "one_file_update_ms": 449.2041,
+          "parsed": 1,
+          "peak_working_set_bytes": 88514560,
+          "reused": 999,
+          "search_ms": 2.2588999999999997,
+          "search_results": 100,
+          "slice_ms": 0.1132,
+          "slice_nodes": 3,
+          "unchanged_ms": 386.51750000000004,
+          "unchanged_reused": 1000
+        },
+        {
+          "cold_ms": 9020.1803,
+          "database_bytes": 334815232,
+          "edges": 200000,
+          "files": 10000,
+          "functions": 100000,
+          "graph_load_ms": 850.1664,
+          "impact_ms": 0.13699999999999998,
+          "impact_results": 8,
+          "impact_truncated": true,
+          "nodes": 110000,
+          "one_file_update_ms": 5668.7681999999995,
+          "parsed": 1,
+          "peak_working_set_bytes": 764313600,
+          "reused": 9999,
+          "search_ms": 27.142300000000002,
+          "search_results": 100,
+          "slice_ms": 0.0982,
+          "slice_nodes": 3,
+          "unchanged_ms": 4975.2984,
+          "unchanged_reused": 10000
+        }
+      ],
+      "schema_version": 1
+    },
+    {
+      "fixture": "10 functions per TS module; directed calls; one exported entry per module",
+      "runs": [
+        {
+          "cold_ms": 88.7069,
+          "database_bytes": 3362816,
+          "edges": 2000,
+          "files": 100,
+          "functions": 1000,
+          "graph_load_ms": 4.940499999999999,
+          "impact_ms": 0.18359999999999999,
+          "impact_results": 8,
+          "impact_truncated": true,
+          "nodes": 1100,
+          "one_file_update_ms": 47.542,
+          "parsed": 1,
+          "peak_working_set_bytes": 20475904,
+          "reused": 99,
+          "search_ms": 0.4526,
+          "search_results": 100,
+          "slice_ms": 0.1064,
+          "slice_nodes": 3,
+          "unchanged_ms": 37.8439,
+          "unchanged_reused": 100
+        },
+        {
+          "cold_ms": 679.392,
+          "database_bytes": 33423360,
+          "edges": 20000,
+          "files": 1000,
+          "functions": 10000,
+          "graph_load_ms": 67.5166,
+          "impact_ms": 0.1729,
+          "impact_results": 8,
+          "impact_truncated": true,
+          "nodes": 11000,
+          "one_file_update_ms": 383.7121,
+          "parsed": 1,
+          "peak_working_set_bytes": 88797184,
+          "reused": 999,
+          "search_ms": 2.1459,
+          "search_results": 100,
+          "slice_ms": 0.1412,
+          "slice_nodes": 3,
+          "unchanged_ms": 386.5367,
+          "unchanged_reused": 1000
+        },
+        {
+          "cold_ms": 6229.421600000001,
+          "database_bytes": 334815232,
+          "edges": 200000,
+          "files": 10000,
+          "functions": 100000,
+          "graph_load_ms": 749.4834999999999,
+          "impact_ms": 0.1281,
+          "impact_results": 8,
+          "impact_truncated": true,
+          "nodes": 110000,
+          "one_file_update_ms": 3914.5192,
+          "parsed": 1,
+          "peak_working_set_bytes": 764301312,
+          "reused": 9999,
+          "search_ms": 28.1304,
+          "search_results": 100,
+          "slice_ms": 0.09459999999999999,
+          "slice_nodes": 3,
+          "unchanged_ms": 3453.3458,
+          "unchanged_reused": 10000
+        }
+      ],
+      "schema_version": 1
+    },
+    {
+      "fixture": "10 functions per TS module; directed calls; one exported entry per module",
+      "runs": [
+        {
+          "cold_ms": 79.1464,
+          "database_bytes": 3362816,
+          "edges": 2000,
+          "files": 100,
+          "functions": 1000,
+          "graph_load_ms": 4.8391,
+          "impact_ms": 0.1228,
+          "impact_results": 8,
+          "impact_truncated": true,
+          "nodes": 1100,
+          "one_file_update_ms": 123.4921,
+          "parsed": 1,
+          "peak_working_set_bytes": 20193280,
+          "reused": 99,
+          "search_ms": 1.9516,
+          "search_results": 100,
+          "slice_ms": 0.09509999999999999,
+          "slice_nodes": 3,
+          "unchanged_ms": 38.450900000000004,
+          "unchanged_reused": 100
+        },
+        {
+          "cold_ms": 680.0148,
+          "database_bytes": 33423360,
+          "edges": 20000,
+          "files": 1000,
+          "functions": 10000,
+          "graph_load_ms": 62.5618,
+          "impact_ms": 0.15669999999999998,
+          "impact_results": 8,
+          "impact_truncated": true,
+          "nodes": 11000,
+          "one_file_update_ms": 364.5657,
+          "parsed": 1,
+          "peak_working_set_bytes": 88514560,
+          "reused": 999,
+          "search_ms": 2.1757,
+          "search_results": 100,
+          "slice_ms": 0.08839999999999999,
+          "slice_nodes": 3,
+          "unchanged_ms": 384.2669,
+          "unchanged_reused": 1000
+        },
+        {
+          "cold_ms": 6208.850100000001,
+          "database_bytes": 334815232,
+          "edges": 200000,
+          "files": 10000,
+          "functions": 100000,
+          "graph_load_ms": 671.3272999999999,
+          "impact_ms": 0.1369,
+          "impact_results": 8,
+          "impact_truncated": true,
+          "nodes": 110000,
+          "one_file_update_ms": 3741.2153,
+          "parsed": 1,
+          "peak_working_set_bytes": 766951424,
+          "reused": 9999,
+          "search_ms": 21.2638,
+          "search_results": 100,
+          "slice_ms": 0.0955,
+          "slice_nodes": 3,
+          "unchanged_ms": 3598.8003,
+          "unchanged_reused": 10000
+        }
+      ],
+      "schema_version": 1
+    }
+  ],
+  "after": [
+    {
+      "fixture": "10 functions per TS module; directed calls; one exported entry per module",
+      "runs": [
+        {
+          "cold_ms": 62.8942,
+          "database_bytes": 3362816,
+          "edges": 2000,
+          "files": 100,
+          "functions": 1000,
+          "graph_load_ms": 7.940799999999999,
+          "impact_ms": 0.1393,
+          "impact_results": 8,
+          "impact_truncated": true,
+          "nodes": 1100,
+          "one_file_update_ms": 37.7369,
+          "parsed": 1,
+          "peak_working_set_bytes": 21467136,
+          "reused": 99,
+          "search_ms": 0.9933,
+          "search_results": 100,
+          "slice_ms": 0.0856,
+          "slice_nodes": 3,
+          "unchanged_ms": 34.099900000000005,
+          "unchanged_reused": 100
+        },
+        {
+          "cold_ms": 633.1917,
+          "database_bytes": 33423360,
+          "edges": 20000,
+          "files": 1000,
+          "functions": 10000,
+          "graph_load_ms": 62.903299999999994,
+          "impact_ms": 0.1263,
+          "impact_results": 8,
+          "impact_truncated": true,
+          "nodes": 11000,
+          "one_file_update_ms": 371.9986,
+          "parsed": 1,
+          "peak_working_set_bytes": 89186304,
+          "reused": 999,
+          "search_ms": 2.1722,
+          "search_results": 100,
+          "slice_ms": 0.0922,
+          "slice_nodes": 3,
+          "unchanged_ms": 404.69169999999997,
+          "unchanged_reused": 1000
+        },
+        {
+          "cold_ms": 6538.8817,
+          "database_bytes": 334815232,
+          "edges": 200000,
+          "files": 10000,
+          "functions": 100000,
+          "graph_load_ms": 702.6771000000001,
+          "impact_ms": 0.12469999999999999,
+          "impact_results": 8,
+          "impact_truncated": true,
+          "nodes": 110000,
+          "one_file_update_ms": 3666.5465,
+          "parsed": 1,
+          "peak_working_set_bytes": 766103552,
+          "reused": 9999,
+          "search_ms": 21.475399999999997,
+          "search_results": 100,
+          "slice_ms": 0.0917,
+          "slice_nodes": 3,
+          "unchanged_ms": 3366.9152000000004,
+          "unchanged_reused": 10000
+        }
+      ],
+      "schema_version": 1
+    },
+    {
+      "fixture": "10 functions per TS module; directed calls; one exported entry per module",
+      "runs": [
+        {
+          "cold_ms": 78.8348,
+          "database_bytes": 3362816,
+          "edges": 2000,
+          "files": 100,
+          "functions": 1000,
+          "graph_load_ms": 4.8496,
+          "impact_ms": 0.1252,
+          "impact_results": 8,
+          "impact_truncated": true,
+          "nodes": 1100,
+          "one_file_update_ms": 45.4015,
+          "parsed": 1,
+          "peak_working_set_bytes": 20742144,
+          "reused": 99,
+          "search_ms": 0.442,
+          "search_results": 100,
+          "slice_ms": 0.0948,
+          "slice_nodes": 3,
+          "unchanged_ms": 37.754400000000004,
+          "unchanged_reused": 100
+        },
+        {
+          "cold_ms": 916.6775,
+          "database_bytes": 33423360,
+          "edges": 20000,
+          "files": 1000,
+          "functions": 10000,
+          "graph_load_ms": 57.9309,
+          "impact_ms": 0.1109,
+          "impact_results": 8,
+          "impact_truncated": true,
+          "nodes": 11000,
+          "one_file_update_ms": 333.2407,
+          "parsed": 1,
+          "peak_working_set_bytes": 89059328,
+          "reused": 999,
+          "search_ms": 1.9477,
+          "search_results": 100,
+          "slice_ms": 0.0877,
+          "slice_nodes": 3,
+          "unchanged_ms": 373.4873,
+          "unchanged_reused": 1000
+        },
+        {
+          "cold_ms": 6039.3543,
+          "database_bytes": 334815232,
+          "edges": 200000,
+          "files": 10000,
+          "functions": 100000,
+          "graph_load_ms": 770.257,
+          "impact_ms": 0.14809999999999998,
+          "impact_results": 8,
+          "impact_truncated": true,
+          "nodes": 110000,
+          "one_file_update_ms": 3628.6960000000004,
+          "parsed": 1,
+          "peak_working_set_bytes": 765345792,
+          "reused": 9999,
+          "search_ms": 29.4949,
+          "search_results": 100,
+          "slice_ms": 0.12290000000000001,
+          "slice_nodes": 3,
+          "unchanged_ms": 3311.8964,
+          "unchanged_reused": 10000
+        }
+      ],
+      "schema_version": 1
+    },
+    {
+      "fixture": "10 functions per TS module; directed calls; one exported entry per module",
+      "runs": [
+        {
+          "cold_ms": 81.6268,
+          "database_bytes": 3362816,
+          "edges": 2000,
+          "files": 100,
+          "functions": 1000,
+          "graph_load_ms": 5.2319,
+          "impact_ms": 0.135,
+          "impact_results": 8,
+          "impact_truncated": true,
+          "nodes": 1100,
+          "one_file_update_ms": 46.402899999999995,
+          "parsed": 1,
+          "peak_working_set_bytes": 20426752,
+          "reused": 99,
+          "search_ms": 0.48700000000000004,
+          "search_results": 100,
+          "slice_ms": 0.0956,
+          "slice_nodes": 3,
+          "unchanged_ms": 41.1717,
+          "unchanged_reused": 100
+        },
+        {
+          "cold_ms": 639.3069,
+          "database_bytes": 33423360,
+          "edges": 20000,
+          "files": 1000,
+          "functions": 10000,
+          "graph_load_ms": 62.1216,
+          "impact_ms": 0.41869999999999996,
+          "impact_results": 8,
+          "impact_truncated": true,
+          "nodes": 11000,
+          "one_file_update_ms": 348.2885,
+          "parsed": 1,
+          "peak_working_set_bytes": 89726976,
+          "reused": 999,
+          "search_ms": 4.8258,
+          "search_results": 100,
+          "slice_ms": 0.5464000000000001,
+          "slice_nodes": 3,
+          "unchanged_ms": 310.76189999999997,
+          "unchanged_reused": 1000
+        },
+        {
+          "cold_ms": 6709.4645,
+          "database_bytes": 334815232,
+          "edges": 200000,
+          "files": 10000,
+          "functions": 100000,
+          "graph_load_ms": 716.034,
+          "impact_ms": 0.1237,
+          "impact_results": 8,
+          "impact_truncated": true,
+          "nodes": 110000,
+          "one_file_update_ms": 3668.1724999999997,
+          "parsed": 1,
+          "peak_working_set_bytes": 765792256,
+          "reused": 9999,
+          "search_ms": 21.776500000000002,
+          "search_results": 100,
+          "slice_ms": 0.0957,
+          "slice_nodes": 3,
+          "unchanged_ms": 3396.8068000000003,
+          "unchanged_reused": 10000
+        }
+      ],
+      "schema_version": 1
+    }
+  ],
+  "phase_profile": [
+    {
+      "cache_load": 0.7306,
+      "discovery": 6.0275,
+      "discovery_read_parse": 45.745599999999996,
+      "resolution": 4.6477,
+      "cycles": 0.1369,
+      "serialization": 4.5024,
+      "sqlite_publication": 16.9442,
+      "files": 100,
+      "operation": "cold"
+    },
+    {
+      "cache_load": 2.1666,
+      "discovery": 3.494,
+      "discovery_read_parse": 20.1898,
+      "resolution": 7.2162,
+      "cycles": 0.13870000000000002,
+      "serialization": 1.703,
+      "sqlite_publication": 4.9667,
+      "files": 100,
+      "operation": "unchanged"
+    },
+    {
+      "cache_load": 2.2085,
+      "discovery": 7.7155000000000005,
+      "discovery_read_parse": 23.9132,
+      "resolution": 2.9671,
+      "cycles": 0.10490000000000001,
+      "serialization": 1.5987,
+      "sqlite_publication": 13.5196,
+      "files": 100,
+      "operation": "one_file_update"
+    },
+    {
+      "cache_load": 0.1444,
+      "discovery": 51.3347,
+      "discovery_read_parse": 516.2054,
+      "resolution": 51.1485,
+      "cycles": 1.7459,
+      "serialization": 46.3388,
+      "sqlite_publication": 81.1721,
+      "files": 1000,
+      "operation": "cold"
+    },
+    {
+      "cache_load": 23.740299999999998,
+      "discovery": 33.001999999999995,
+      "discovery_read_parse": 228.2217,
+      "resolution": 54.881899999999995,
+      "cycles": 5.2712,
+      "serialization": 24.7748,
+      "sqlite_publication": 30.0929,
+      "files": 1000,
+      "operation": "unchanged"
+    },
+    {
+      "cache_load": 25.3065,
+      "discovery": 39.3759,
+      "discovery_read_parse": 194.4804,
+      "resolution": 53.6943,
+      "cycles": 7.0931,
+      "serialization": 28.094,
+      "sqlite_publication": 59.0578,
+      "files": 1000,
+      "operation": "one_file_update"
+    },
+    {
+      "cache_load": 0.3006,
+      "discovery": 337.173,
+      "discovery_read_parse": 4481.2542,
+      "resolution": 649.7043,
+      "cycles": 31.6795,
+      "serialization": 433.5194,
+      "sqlite_publication": 716.0111999999999,
+      "files": 10000,
+      "operation": "cold"
+    },
+    {
+      "cache_load": 274.97450000000003,
+      "discovery": 276.7479,
+      "discovery_read_parse": 1956.9523,
+      "resolution": 647.0956,
+      "cycles": 30.715,
+      "serialization": 327.18190000000004,
+      "sqlite_publication": 208.12279999999998,
+      "files": 10000,
+      "operation": "unchanged"
+    },
+    {
+      "cache_load": 252.64520000000002,
+      "discovery": 311.6067,
+      "discovery_read_parse": 1956.8533000000002,
+      "resolution": 615.9932,
+      "cycles": 19.5157,
+      "serialization": 304.796,
+      "sqlite_publication": 546.2832,
+      "files": 10000,
+      "operation": "one_file_update"
+    }
+  ],
+  "real_source_workloads": [
+    {
+      "symbols": 135,
+      "relationships": 414,
+      "elapsed_ms": 108.607,
+      "parsed": 10,
+      "source_files": 10,
+      "diagnostics": 821,
+      "reused": 0,
+      "database_bytes": 778240,
+      "name": "react-source",
+      "iteration": 1
+    },
+    {
+      "symbols": 135,
+      "relationships": 414,
+      "elapsed_ms": 36.4654,
+      "parsed": 0,
+      "source_files": 10,
+      "diagnostics": 821,
+      "reused": 10,
+      "database_bytes": 778240,
+      "name": "react-source",
+      "iteration": 2
+    },
+    {
+      "symbols": 135,
+      "relationships": 414,
+      "elapsed_ms": 35.3994,
+      "parsed": 0,
+      "source_files": 10,
+      "diagnostics": 821,
+      "reused": 10,
+      "database_bytes": 778240,
+      "name": "react-source",
+      "iteration": 3
+    },
+    {
+      "symbols": 1529,
+      "relationships": 4175,
+      "elapsed_ms": 726.8749,
+      "parsed": 29,
+      "source_files": 29,
+      "diagnostics": 4104,
+      "reused": 0,
+      "database_bytes": 5971968,
+      "name": "python-email",
+      "iteration": 1
+    },
+    {
+      "symbols": 1529,
+      "relationships": 4175,
+      "elapsed_ms": 92.8402,
+      "parsed": 0,
+      "source_files": 29,
+      "diagnostics": 4104,
+      "reused": 29,
+      "database_bytes": 5971968,
+      "name": "python-email",
+      "iteration": 2
+    },
+    {
+      "symbols": 1529,
+      "relationships": 4175,
+      "elapsed_ms": 100.4166,
+      "parsed": 0,
+      "source_files": 29,
+      "diagnostics": 4104,
+      "reused": 29,
+      "database_bytes": 5971968,
+      "name": "python-email",
+      "iteration": 3
+    }
+  ],
+  "soak": {
+    "cycles": 120,
+    "elapsed_seconds": 51.3060858,
+    "files": 1000,
+    "functions": 10000,
+    "samples": [
+      {
+        "iteration": 10,
+        "working_set_bytes": 39403520
+      },
+      {
+        "iteration": 20,
+        "working_set_bytes": 38653952
+      },
+      {
+        "iteration": 30,
+        "working_set_bytes": 38416384
+      },
+      {
+        "iteration": 40,
+        "working_set_bytes": 38764544
+      },
+      {
+        "iteration": 50,
+        "working_set_bytes": 39854080
+      },
+      {
+        "iteration": 60,
+        "working_set_bytes": 39149568
+      },
+      {
+        "iteration": 70,
+        "working_set_bytes": 43556864
+      },
+      {
+        "iteration": 80,
+        "working_set_bytes": 43159552
+      },
+      {
+        "iteration": 90,
+        "working_set_bytes": 42803200
+      },
+      {
+        "iteration": 100,
+        "working_set_bytes": 43941888
+      },
+      {
+        "iteration": 110,
+        "working_set_bytes": 39694336
+      },
+      {
+        "iteration": 120,
+        "working_set_bytes": 44892160
+      }
+    ],
+    "schema_version": 1,
+    "scope": "Repeated index/cache/adjacency/impact lifecycle. Not a multi-hour native UI soak."
+  },
+  "installer": {
+    "version": "0.1.1",
+    "database_schema": 3,
+    "data_preserved": true,
+    "uninstall": true,
+    "signature": "NotSigned",
+    "previous_version": "0.1.1",
+    "installation": "C:\\Users\\Test\\Documents\\Threadmark\\artifacts\\installed",
+    "reinstall": true,
+    "upgrade": true
+  },
+  "build_receipt": {
+    "schema_version": 1,
+    "commit": "c43b470417fc1716c064c6e51ed1f29b2fd605bb",
+    "artifacts": [
+      {
+        "path": "target/release/threadmark.exe",
+        "sha256": "e42a11cc27b434c5d3978d8d5b0f2ad4c08511759893bf333ba97a435a3dd79a"
+      },
+      {
+        "path": "target/release/bundle/nsis/Threadmark_0.1.1_x64-setup.exe",
+        "sha256": "8b00525036fcb0b8cbb86bb99687e7bc41cd333eafdddf441c6db4a9fd81a9e4"
+      }
+    ]
+  },
+  "published_source_comparison": {
+    "tag": "v0.1.1",
+    "comparison": "exact bytes or CRLF-to-LF equivalence",
+    "tag_files": 119,
+    "archive_files": 119,
+    "extra_paths": [],
+    "missing_paths": [],
+    "different_paths": [],
+    "download_sha256": "2d54ac418b8f4fc8f15d89f2ecfc046f75ada15fc8105945c5708e35e4b1c539"
+  },
+  "dependency_advisories": {
+    "rust_vulnerabilities": 0,
+    "informational_ids": [
+      "RUSTSEC-2024-0370",
+      "RUSTSEC-2024-0429"
+    ],
+    "npm": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    },
+    "windows_target": "glib and proc-macro-error not present in Windows reverse dependency trees"
+  },
+  "native_checks": {
+    "reindexed_source_files": 9,
+    "symbols": 11,
+    "searched": "createForecast",
+    "map_nodes": 9,
+    "watch_started_and_stopped": true,
+    "export_nodes": 20,
+    "export_edges": 40,
+    "default_export_evidence_omitted": true,
+    "staging_files_remaining": 0,
+    "narrow_map_and_settings": true,
+    "screen_reader_tested": false,
+    "automation_limitations": "Stale accessibility data and unavailable geometry. Post-save foreground capture was discarded."
+  },
+  "checks": {
+    "rust_tests": 53,
+    "frontend_tests": 19,
+    "fmt": "pass",
+    "clippy": "pass",
+    "frontend_lint_typecheck_build": "pass",
+    "candidate_build": "pass",
+    "package_hashes": "pass",
+    "packaging_regressions": "pass",
+    "notice_regeneration": "no committed drift",
+    "baseline_reexport_regressions": "two expected failures on original engine"
+  }
+}

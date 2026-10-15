@@ -64,7 +64,24 @@ impl WatchHandle {
     pub fn start(
         root: &Path,
         data_directory: PathBuf,
+        updated: impl FnMut(Result<Snapshot, Error>) + Send + 'static,
+    ) -> Result<Self, Error> {
+        Self::start_with_selection(root, data_directory, updated, true)
+    }
+
+    pub fn start_preserving_selection(
+        root: &Path,
+        data_directory: PathBuf,
+        updated: impl FnMut(Result<Snapshot, Error>) + Send + 'static,
+    ) -> Result<Self, Error> {
+        Self::start_with_selection(root, data_directory, updated, false)
+    }
+
+    fn start_with_selection(
+        root: &Path,
+        data_directory: PathBuf,
         mut updated: impl FnMut(Result<Snapshot, Error>) + Send + 'static,
+        select: bool,
     ) -> Result<Self, Error> {
         let root = crate::indexing::root(root)?;
         let cancel = Arc::new(AtomicBool::new(false));
@@ -136,7 +153,12 @@ impl WatchHandle {
                     && (last.elapsed() >= Duration::from_millis(400)
                         || since.elapsed() >= Duration::from_secs(2))
                 {
-                    match engine.index_repository(&root, &worker_cancel, |_| {}) {
+                    let result = if select {
+                        engine.index_repository(&root, &worker_cancel, |_| {})
+                    } else {
+                        engine.index_repository_preserving_selection(&root, &worker_cancel, |_| {})
+                    };
+                    match result {
                         Err(Error::Cancelled) => break,
                         result => updated(result),
                     }

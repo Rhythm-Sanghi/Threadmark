@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
@@ -19,6 +19,36 @@ beforeEach(() => { vi.resetAllMocks(); vi.mocked(listen).mockResolvedValue(() =>
 async function openRepository() { render(<App />); await userEvent.click(await screen.findByRole('button',{ name: /C:\/repo/ })); }
 
 describe('local explorer', () => {
+  it('contains Tab focus in Settings and restores it on close', async () => {
+    await openRepository();
+    const trigger = screen.getByRole('button', { name: 'Settings' });
+    await userEvent.click(trigger);
+    const close = screen.getByRole('button', { name: 'Close settings' });
+    const editor = screen.getByRole('button', { name: 'Configure editor' });
+    close.focus();
+    await userEvent.keyboard('{Shift>}{Tab}{/Shift}');
+    expect(document.activeElement).toBe(editor);
+    await userEvent.tab();
+    expect(document.activeElement).toBe(close);
+    await userEvent.click(close);
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it('navigates node actions with arrows and restores focus after Escape', async () => {
+    await openRepository();
+    await userEvent.click(await screen.findByRole('button', { name: /work.ts/ }));
+    const trigger = await screen.findByRole('button', { name: 'Focus work' });
+    trigger.focus();
+    await userEvent.keyboard('{Shift>}{F10}{/Shift}');
+    expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'Focus here' }));
+    await userEvent.keyboard('{ArrowUp}');
+    expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'Copy file path' }));
+    await userEvent.keyboard('{Home}{ArrowDown}');
+    expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'Show dependencies' }));
+    await userEvent.keyboard('{End}{Escape}');
+    expect(screen.queryByRole('menu')).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+  });
   it('opens node actions with the keyboard',async()=>{await openRepository();await userEvent.click(await screen.findByRole('button',{name:/work.ts/}));const focused=await screen.findByRole('button',{name:'Focus work'});focused.focus();await userEvent.keyboard('{Shift>}{F10}{/Shift}');expect(await screen.findByRole('menuitem',{name:'Show related tests'})).toBeTruthy();await userEvent.keyboard('{Escape}');expect(screen.queryByRole('menu')).toBeNull();});
   it('reports notification subscription failures',async()=>{vi.mocked(listen).mockRejectedValue('Notifications unavailable');render(<App/>);expect(await screen.findByText('Notifications unavailable')).toBeTruthy();});
   it('starts and stops an explicit watcher',async()=>{await openRepository();await userEvent.click(screen.getByRole('button',{name:'Watch changes'}));expect(api.startWatch).toHaveBeenCalled();await userEvent.click(await screen.findByRole('button',{name:'Stop watching'}));expect(api.stopWatch).toHaveBeenCalled();});
@@ -48,6 +78,7 @@ describe('local explorer', () => {
     expect(document.activeElement).toBe(search);
     await userEvent.type(search, 'work');
     await screen.findByRole('listbox', { name: 'Search results' });
+    expect(search.getAttribute('aria-activedescendant')).toBe(within(screen.getByRole('listbox')).getByRole('option', { selected: true }).id);
     await userEvent.keyboard('{Enter}');
     expect(await screen.findByLabelText('Relationship map')).toBeTruthy();
     expect(api.slice).toHaveBeenCalledWith('work', 'both', 1);

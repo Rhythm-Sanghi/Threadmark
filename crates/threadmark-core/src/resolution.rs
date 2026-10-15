@@ -516,6 +516,28 @@ pub fn resolve_sources(
     }
     // A bounded fixed point resolves chains of barrels, including circular
     // re-exports. Ambiguous duplicate exports are removed rather than guessed.
+    // Explicit local/named exports take precedence over export-star entries,
+    // even when an explicit export cannot itself be resolved.
+    let explicit_exports: HashSet<_> = files
+        .iter()
+        .filter(|file| file.nodes[0].language != "python")
+        .flat_map(|file| {
+            file.exports
+                .iter()
+                .map(|(alias, _)| (file.path.as_str(), alias.as_str()))
+                .chain(
+                    file.imports
+                        .iter()
+                        .filter(|import| import.reexport)
+                        .flat_map(|import| {
+                            import
+                                .bindings
+                                .iter()
+                                .map(|(alias, _)| (file.path.as_str(), alias.as_str()))
+                        }),
+                )
+        })
+        .collect();
     let mut ambiguous = HashSet::new();
     for _ in 0..files.len().min(256) {
         let mut updates = Vec::new();
@@ -532,6 +554,9 @@ pub fn resolve_sources(
                             continue;
                         }
                         if import.bindings.is_empty() {
+                            if explicit_exports.contains(&(file.path.as_str(), alias.as_str())) {
+                                continue;
+                            }
                             updates.push((file.path.clone(), alias.clone(), id.clone()));
                         } else {
                             for (new_name, old_name) in &import.bindings {
@@ -564,6 +589,52 @@ pub fn resolve_sources(
         }
         if !changed {
             break;
+        }
+    }
+    // A barrel may have propagated an apparently unique target before another
+    // chain exposed its ambiguity. Retract that target through downstream
+    // re-exports as well; otherwise consumers can retain a confident stale edge.
+    let mut importers: HashMap<&str, Vec<(&ParsedFile, &Import)>> = HashMap::new();
+    for file in files {
+        for (index, import) in file
+            .imports
+            .iter()
+            .enumerate()
+            .filter(|(_, import)| import.reexport)
+        {
+            if let Some(target) = resolved.get(&(file.path.clone(), index)) {
+                importers
+                    .entry(target.as_str())
+                    .or_default()
+                    .push((file, import));
+            }
+        }
+    }
+    let mut pending: std::collections::VecDeque<_> = ambiguous.iter().cloned().collect();
+    while let Some((target, alias)) = pending.pop_front() {
+        for (file, import) in importers.get(target.as_str()).into_iter().flatten() {
+            let aliases: Vec<_> = if import.bindings.is_empty() {
+                if alias == "default"
+                    || explicit_exports.contains(&(file.path.as_str(), alias.as_str()))
+                {
+                    continue;
+                }
+                vec![alias.as_str()]
+            } else {
+                import
+                    .bindings
+                    .iter()
+                    .filter(|(_, old)| old == &alias)
+                    .map(|(new, _)| new.as_str())
+                    .collect()
+            };
+            for alias in aliases {
+                let key = (file.path.clone(), alias.to_owned());
+                if ambiguous.insert(key.clone()) {
+                    exports.get_mut(&file.path).unwrap().remove(alias);
+                    pending.push_back(key);
+                }
+            }
         }
     }
     for (file, alias) in ambiguous {

@@ -1,4 +1,5 @@
 use std::{sync::mpsc, time::Duration};
+use threadmark_core::Engine;
 use threadmark_core::watch::WatchHandle;
 #[test]
 fn native_watcher_reparses_changed_files_reuses_others_and_handles_rename_delete() {
@@ -7,9 +8,13 @@ fn native_watcher_reparses_changed_files_reuses_others_and_handles_rename_delete
     std::fs::write(root.path().join("work.ts"), "export function work(){}").unwrap();
     std::fs::write(root.path().join("stable.ts"), "export function stable(){}").unwrap();
     let (sender, receiver) = mpsc::channel();
-    let watch = WatchHandle::start(root.path(), data.path().to_owned(), move |snapshot| {
-        sender.send(snapshot).unwrap();
-    })
+    let watch = WatchHandle::start_preserving_selection(
+        root.path(),
+        data.path().to_owned(),
+        move |snapshot| {
+            sender.send(snapshot).unwrap();
+        },
+    )
     .unwrap();
     assert_eq!(
         receiver
@@ -52,4 +57,38 @@ fn native_watcher_reparses_changed_files_reuses_others_and_handles_rename_delete
     }
     assert!(renamed);
     drop(watch);
+    // A background watcher may publish a graph without changing the user's
+    // selection, including on its initial refresh.
+    assert!(
+        Engine::open(Some(data.path()))
+            .unwrap()
+            .selected_overview()
+            .unwrap()
+            .is_none()
+    );
+}
+
+#[test]
+fn command_line_watcher_keeps_selecting_its_indexed_repository() {
+    let root = tempfile::tempdir().unwrap();
+    let data = tempfile::tempdir().unwrap();
+    std::fs::write(root.path().join("work.ts"), "export function work() {}").unwrap();
+    let (sender, receiver) = mpsc::channel();
+    let watcher = WatchHandle::start(root.path(), data.path().to_owned(), move |result| {
+        sender.send(result).unwrap();
+    })
+    .unwrap();
+    receiver
+        .recv_timeout(Duration::from_secs(10))
+        .unwrap()
+        .unwrap();
+    drop(watcher);
+    assert_eq!(
+        Engine::open(Some(data.path()))
+            .unwrap()
+            .snapshot(None)
+            .unwrap()
+            .root,
+        root.path().canonicalize().unwrap().to_string_lossy()
+    );
 }

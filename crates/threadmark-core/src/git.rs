@@ -239,7 +239,8 @@ impl Engine {
         let selected = self.snapshot(None)?;
         let root = crate::indexing::root(Path::new(&selected.root))?;
         let (commit, branch, before) = baseline(&root, reference)?;
-        let current = self.index_repository(&root, &AtomicBool::new(false), |_| {})?;
+        let current =
+            self.index_repository_preserving_selection(&root, &AtomicBool::new(false), |_| {})?;
         let old: HashMap<_, _> = before
             .nodes
             .iter()

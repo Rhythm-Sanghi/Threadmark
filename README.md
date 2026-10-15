@@ -105,7 +105,18 @@ The installer includes the separately built CLI; build it before packaging.
 Run `scripts/audit-licenses.ps1` and `scripts/package-release.ps1` from PowerShell
 for license inventory and portable/source archives. Source remains GPL-3.0-or-later.
 `scripts/generate-notices.ps1` collects dependency license texts before packaging.
-Packaged outputs and SHA256 checksums are under `artifacts/release`.
+Use `scripts/build-candidate.ps1` from a clean committed checkout, then
+`scripts/package-release.ps1 -OutputDirectory artifacts/my-candidate` with a new
+empty output directory. Source archives contain the selected commit only;
+the manifest records that commit and the binary build hashes. See the
+[release procedure](docs/release.md) before packaging or signing.
+
+## Architecture
+
+Rust owns discovery, Tree-sitter parsing, static resolution and bounded graph
+queries. SQLite publishes snapshots and parse caches in one transaction. Tauri
+and the CLI call the same engine; React presents neighborhoods and source evidence.
+Refreshes reuse unchanged parses and rebuild relationship resolution.
 
 ## Scope and evidence
 

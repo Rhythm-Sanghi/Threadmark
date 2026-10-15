@@ -72,6 +72,71 @@ fn imports_aliases_reexports_calls_and_types() {
 }
 
 #[test]
+fn explicit_exports_take_precedence_over_star_reexports() {
+    let snapshot = index(&[
+        ("a.ts", "export function work() {}"),
+        ("b.ts", "export function chosen() {}"),
+        (
+            "named.ts",
+            "export * from './a'; export {chosen as work} from './b';",
+        ),
+        ("local.ts", "export * from './a'; export function work() {}"),
+        (
+            "main.ts",
+            "import {work} from './named'; function run(){work();}",
+        ),
+    ]);
+    assert!(relationship(&snapshot, "run", "chosen", "CALLS"));
+    assert!(
+        !snapshot
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "ambiguous-export")
+    );
+    let local = snapshot
+        .nodes
+        .iter()
+        .find(|n| n.path == "local.ts" && n.kind == "file")
+        .unwrap();
+    let work = snapshot
+        .nodes
+        .iter()
+        .find(|n| n.path == "local.ts" && n.name == "work")
+        .unwrap();
+    assert!(
+        snapshot
+            .edges
+            .iter()
+            .any(|e| e.from == local.id && e.to == work.id && e.kind == "EXPORTS")
+    );
+}
+
+#[test]
+fn late_ambiguous_reexports_are_retracted_from_downstream_barrels() {
+    let snapshot = index(&[
+        ("a.ts", "export function work() {}"),
+        ("b.ts", "export function work() {}"),
+        ("slow.ts", "export * from './b';"),
+        (
+            "ambiguous.ts",
+            "export * from './a'; export * from './slow';",
+        ),
+        ("forward.ts", "export * from './ambiguous';"),
+        (
+            "main.ts",
+            "import {work} from './forward'; function run(){work();}",
+        ),
+    ]);
+    assert!(!relationship(&snapshot, "run", "work", "CALLS"));
+    assert!(
+        snapshot
+            .diagnostics
+            .iter()
+            .any(|d| d.path == "forward.ts" && d.code == "ambiguous-export")
+    );
+}
+
+#[test]
 fn workspace_exports_and_circular_barrels() {
     let snapshot = index(&[
         (
