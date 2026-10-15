@@ -10,10 +10,10 @@ jobs:
       run:
         shell: pwsh
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: '24.15.0'
           cache: npm
@@ -50,7 +50,7 @@ jobs:
       - name: Check dependency advisories
         run: |
           New-Item -ItemType Directory -Force artifacts | Out-Null
-          cargo install cargo-audit --locked
+          cargo install cargo-audit --locked --version 0.22.2
           if ($LASTEXITCODE) { throw 'Advisory tool installation failed' }
           cargo audit --json | Set-Content artifacts/security-audit.json
           if ($LASTEXITCODE) { throw 'Rust vulnerability advisory check failed' }
@@ -89,7 +89,7 @@ jobs:
           }
           Copy-Item artifacts/security-audit.json,artifacts/npm-security-audit.json artifacts/release
           Get-ChildItem artifacts/release -File | Where-Object Name -ne SHA256SUMS.txt | Get-FileHash -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLowerInvariant())  $([IO.Path]::GetFileName($_.Path))" } | Set-Content artifacts/release/SHA256SUMS.txt
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: Threadmark-windows-release-candidate
           path: artifacts/release/*
