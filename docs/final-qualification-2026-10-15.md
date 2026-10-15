@@ -205,14 +205,17 @@ At review time, remote `main` and `v0.1.1` still identify `1ff28c9`.
 are at `0d7b783`. Their common ancestor with this branch is `1ff28c9`.
 PR #1 consolidates architecture decisions, moves six historical JSON records
 under `docs/evidence`, and updates links. Git patch-equivalence inspection found
-no duplicate commit. A local `git merge-tree` rehearsal combined its head with
-this branch without conflict (including `docs/release.md`); repeat after any
-later edit. Preserve its moves and the updated release procedure.
+no duplicate commit. A final local `git merge-tree` rehearsal found one content
+conflict in `docs/release.md`: PR #1 updates the historical lifecycle-report
+link to `evidence/installer-lifecycle-windows-0.1.1.json`, while this branch
+corrects the nearby upgrade-script wording. Resolve it by retaining this branch's
+wording and PR #1's moved evidence link. No runtime file conflicts were reported.
 
 Proposed sequence: review and merge PR #1 once; update this branch through an
-ordinary merge of the resulting `main`; rerun link/build checks; then open a
-separate hardening PR. Do not force-push, merge automatically, delete the cleanup
-branch, alter tags, or change branch protection.
+ordinary merge of the resulting `main`; resolve that one link/wording conflict;
+rerun link/build checks; then open a separate hardening PR. Do not force-push,
+merge automatically, delete the cleanup branch, alter tags, or change branch
+protection.
 
 Proposed PR title: **Harden Threadmark indexing, desktop responsiveness, and
 release provenance**.
