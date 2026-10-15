@@ -30,7 +30,7 @@ unchanged. First adjacency load was 973 ms, warm search 42.6 ms, bounded slice
 0.205 ms and impact 0.270 ms; these query measurements were slower in this run.
 Revision checks now ensure cached graphs reflect updates from other connections.
 Single-run timings include background OS variability and are not latency guarantees.
-Raw results: [0.1.1 benchmark](benchmark-windows-0.1.1.json).
+Raw results: [0.1.1 benchmark](evidence/benchmark-windows-0.1.1.json).
 
 A release engine soak ran 120 index/cache/adjacency/impact cycles over 1,000 files
 and 10,000 functions in 52.2 seconds. Each update after the first reused 999 parses;
@@ -38,7 +38,7 @@ node counts and eight-hop impact results remained correct. Sampled working set
 ranged from 36.5 to 41.9 MiB; the last sample was 41.9 MiB. This bounded run does
 not establish multi-hour desktop memory stability or WebView frame performance.
 Reproduce with `cargo run --release -p threadmark-core --example soak --locked`.
-Raw results: [0.1.1 engine soak](soak-windows-0.1.1.json).
+Raw results: [0.1.1 engine soak](evidence/soak-windows-0.1.1.json).
 
 ## Version 0.1.0 baseline
 
@@ -69,8 +69,8 @@ limits cap graph growth, but hundreds of MiB remain possible near these sizes.
 
 An additional denser fixture (100 functions per file) took 4.31 s cold and 2.52 s
 for one-file update at 100,000 functions / 1,000 files; its peak was 681 MiB. Raw
-results: [main workload](benchmark-windows.json) and
-[dense workload](benchmark-symbol-dense-windows.json).
+results: [main workload](evidence/benchmark-windows.json) and
+[dense workload](evidence/benchmark-symbol-dense-windows.json).
 
 Desktop views request at most 24 nodes. Pan, zoom, evidence and keyboard navigation
 have been checked against engine results. Maximum-size frame times and

@@ -15,7 +15,7 @@ Upgrade from 0.1.0 migrated the database from schema 2 to 3 and preserved the
 selected repository and theme. `scripts/verify-installer.ps1` checks upgrade,
 uninstall/reinstall, registration, binary payloads and preservation of user data.
 It requires the app to be closed and refuses installations outside artifacts/installed.
-The [lifecycle report](installer-lifecycle-windows-0.1.1.json) contains the results.
+The [lifecycle report](evidence/installer-lifecycle-windows-0.1.1.json) contains the results.
 
 Native checks covered search, map navigation, source and relationship evidence,
 impact, related tests, Git changes, removed-symbol evidence, diagnostics, file
