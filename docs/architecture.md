@@ -31,3 +31,38 @@ emit only overview metadata. SQLite waits up to five seconds for busy writers.
 Startup errors remain visible and retryable. The desktop runtime contains local
 assets and restricted IPC capabilities. No shell, HTTP, updater or telemetry plugin
 is installed. Versioned contracts are shared DTOs, not rusqlite representations.
+
+## Decisions
+
+### Local analysis only
+
+Accepted. The application must work offline after installation. Rust owns source
+analysis. No accounts, telemetry, cloud indexing or external AI dependencies.
+Dependency downloads and developer tooling are separate from runtime behavior.
+
+
+### Deterministic symbol identity
+
+Implemented. BLAKE3 hashes length-prefixed repository root, relative file path,
+language, qualified symbol name and kind. Source line numbers do not participate;
+moving a declaration within its file preserves its ID. Renaming or moving a file
+produces added/removed IDs. Duplicate declarations are diagnosed and excluded
+from confident name resolution. Indexing and watcher fixtures check identity.
+
+Content fingerprints normalize CRLF to LF for local Git comparison; byte-sensitive
+file hashes still invalidate parse caches and preserve accurate source spans.
+
+### Do not execute repository code
+
+Accepted. Repository contents are untrusted input. Ordinary indexing must never
+run project package scripts, executables, tests or build commands. Developer
+commands in README build Threadmark itself, not repositories it analyzes.
+
+
+### Load bounded graph slices
+
+Implemented. Rust serves directed neighborhoods and evidence paths. React receives
+a bounded slice, rather than loading or traversing the complete graph. Desktop
+neighborhood requests use 24 nodes and one to three hops. Core slice requests are
+capped at 120 nodes. Limits are marked so an incomplete view cannot imply that
+there are no further relationships. Navigation refocuses or expands on demand.
