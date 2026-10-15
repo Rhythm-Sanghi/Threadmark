@@ -1,5 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod export;
+
 use std::sync::Mutex;
 use std::sync::{
     Arc,
@@ -33,14 +35,26 @@ fn with_engine<T>(
     action(engine).map_err(|error| error.to_string())
 }
 
-#[tauri::command]
-fn get_status(state: tauri::State<'_, AppState>) -> Result<Status, String> {
-    with_engine(&state, Engine::status)
+async fn engine_task<T: Send + 'static>(
+    app: tauri::AppHandle,
+    action: impl FnOnce(&Engine) -> Result<T, threadmark_core::Error> + Send + 'static,
+) -> Result<T, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        with_engine(&state, action)
+    })
+    .await
+    .map_err(|error| format!("Background analysis failed: {error}"))?
 }
 
 #[tauri::command]
-fn set_theme(theme: Theme, state: tauri::State<'_, AppState>) -> Result<Status, String> {
-    with_engine(&state, |engine| engine.set_theme(theme))
+async fn get_status(app: tauri::AppHandle) -> Result<Status, String> {
+    engine_task(app, Engine::status).await
+}
+
+#[tauri::command]
+async fn set_theme(theme: Theme, app: tauri::AppHandle) -> Result<Status, String> {
+    engine_task(app, move |engine| engine.set_theme(theme)).await
 }
 
 #[tauri::command]
@@ -57,20 +71,24 @@ async fn choose_repository() -> Option<String> {
 }
 
 #[tauri::command]
-fn recent_repositories(state: tauri::State<'_, AppState>) -> Result<Vec<(String, i64)>, String> {
-    with_engine(&state, Engine::repositories)
+async fn recent_repositories(app: tauri::AppHandle) -> Result<Vec<(String, i64)>, String> {
+    engine_task(app, Engine::repositories).await
 }
 
 #[tauri::command]
-fn overview(state: tauri::State<'_, AppState>) -> Result<Overview, String> {
-    with_engine(&state, |engine| engine.query(|graph| Ok(graph.overview())))
+async fn overview(app: tauri::AppHandle) -> Result<Overview, String> {
+    engine_task(app, move |engine| {
+        engine.query(|graph| Ok(graph.overview()))
+    })
+    .await
 }
 
 #[tauri::command]
-fn select_repository(path: String, state: tauri::State<'_, AppState>) -> Result<Overview, String> {
-    with_engine(&state, |engine| {
+async fn select_repository(path: String, app: tauri::AppHandle) -> Result<Overview, String> {
+    engine_task(app, move |engine| {
         engine.select_repository(std::path::Path::new(&path))
     })
+    .await
 }
 
 #[tauri::command]
@@ -118,38 +136,41 @@ fn cancel_index(job: tauri::State<'_, IndexJob>) {
 }
 
 #[tauri::command]
-fn search(query: String, state: tauri::State<'_, AppState>) -> Result<Vec<Node>, String> {
-    with_engine(&state, |engine| {
+async fn search(query: String, app: tauri::AppHandle) -> Result<Vec<Node>, String> {
+    engine_task(app, move |engine| {
         engine.query(|graph| Ok(graph.search(&query, 100)))
     })
+    .await
 }
 
 #[tauri::command]
-fn repository_tree(
+async fn repository_tree(
     directory: String,
-    state: tauri::State<'_, AppState>,
+    app: tauri::AppHandle,
 ) -> Result<Vec<TreeEntry>, String> {
-    with_engine(&state, |engine| {
+    engine_task(app, move |engine| {
         engine.query(|graph| Ok(graph.tree(&directory)))
     })
+    .await
 }
 
 #[tauri::command]
-fn graph_slice(
+async fn graph_slice(
     selector: String,
     direction: String,
     depth: usize,
     kinds: Vec<String>,
-    state: tauri::State<'_, AppState>,
+    app: tauri::AppHandle,
 ) -> Result<Slice, String> {
-    with_engine(&state, |engine| {
+    engine_task(app, move |engine| {
         engine.query(|graph| graph.slice(&selector, &direction, depth, 24, &kinds))
     })
+    .await
 }
 
 #[tauri::command]
-fn diagnostics(state: tauri::State<'_, AppState>) -> Result<Vec<Diagnostic>, String> {
-    with_engine(&state, |engine| {
+async fn diagnostics(app: tauri::AppHandle) -> Result<Vec<Diagnostic>, String> {
+    engine_task(app, move |engine| {
         engine.query(|graph| {
             Ok(graph
                 .snapshot
@@ -160,26 +181,28 @@ fn diagnostics(state: tauri::State<'_, AppState>) -> Result<Vec<Diagnostic>, Str
                 .collect())
         })
     })
+    .await
 }
 
 #[tauri::command]
-fn find_path(from: String, to: String, state: tauri::State<'_, AppState>) -> Result<Slice, String> {
-    with_engine(&state, |engine| {
+async fn find_path(from: String, to: String, app: tauri::AppHandle) -> Result<Slice, String> {
+    engine_task(app, move |engine| {
         engine.query(|graph| graph.find_path(&from, &to, 32))
     })
+    .await
 }
 
 #[tauri::command]
-fn source_excerpt(
+async fn source_excerpt(
     selector: String,
-    state: tauri::State<'_, AppState>,
+    app: tauri::AppHandle,
 ) -> Result<threadmark_core::editor::Excerpt, String> {
-    with_engine(&state, |engine| engine.excerpt(&selector))
+    engine_task(app, move |engine| engine.excerpt(&selector)).await
 }
 
 #[tauri::command]
-fn open_in_editor(selector: String, state: tauri::State<'_, AppState>) -> Result<(), String> {
-    with_engine(&state, |engine| engine.open_in_editor(&selector))
+async fn open_in_editor(selector: String, app: tauri::AppHandle) -> Result<(), String> {
+    engine_task(app, move |engine| engine.open_in_editor(&selector)).await
 }
 
 #[tauri::command]
@@ -206,15 +229,16 @@ async fn configure_editor(state: tauri::State<'_, AppState>) -> Result<Option<St
 }
 
 #[tauri::command]
-fn analyze_impact(
+async fn analyze_impact(
     selector: String,
     depth: usize,
     kinds: Vec<String>,
-    state: tauri::State<'_, AppState>,
+    app: tauri::AppHandle,
 ) -> Result<threadmark_core::impact::Impact, String> {
-    with_engine(&state, |engine| {
+    engine_task(app, move |engine| {
         engine.query(|graph| graph.impact(&[selector], depth, &kinds))
     })
+    .await
 }
 
 #[tauri::command]
@@ -251,73 +275,85 @@ async fn compare_changes(
 }
 
 #[tauri::command]
-fn stop_watch(app: tauri::AppHandle, state: tauri::State<'_, WatchState>) -> Result<(), String> {
-    let previous = state.lock().map_err(|_| "Watcher lock failed")?.take();
-    drop(previous);
-    app.emit("watch-status", false)
-        .map_err(|error| error.to_string())
+async fn stop_watch(app: tauri::AppHandle) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<WatchState>();
+
+        let mut watcher = state.lock().map_err(|_| "Watcher lock failed")?;
+        let previous = watcher.take();
+        drop(previous);
+        app.emit("watch-status", false)
+            .map_err(|error| error.to_string())
+    })
+    .await
+    .map_err(|error| format!("Could not stop background watcher: {error}"))?
 }
 #[tauri::command]
-fn start_watch(
-    app: tauri::AppHandle,
-    state: tauri::State<'_, AppState>,
-    watch: tauri::State<'_, WatchState>,
-) -> Result<(), String> {
-    let (root, data) = with_engine(&state, |engine| {
-        Ok((engine.snapshot(None)?.root, engine.status()?.database_path))
-    })?;
-    let previous = watch.lock().map_err(|_| "Watcher lock failed")?.take();
-    drop(previous);
-    let data = std::path::PathBuf::from(data)
-        .parent()
-        .ok_or("Invalid database directory")?
-        .to_owned();
-    let callback = app.clone();
-    let watched_root = root.clone();
-    let handle = threadmark_core::watch::WatchHandle::start(
-        std::path::Path::new(&root),
-        data,
-        move |result| match result {
-            Ok(_snapshot) => {
-                let state = callback.state::<AppState>();
-                let result = with_engine(&state, |engine| {
-                    if engine.snapshot(None)?.root != watched_root {
-                        return Err(threadmark_core::Error::Analysis(
-                            "Repository changed while watching".into(),
-                        ));
-                    }
-                    engine.select_repository(std::path::Path::new(&watched_root))
-                });
-                match result {
-                    Ok(overview) => {
-                        let _ = callback.emit("index-updated", overview);
-                    }
-                    Err(error) => {
-                        let _ = callback.emit("watch-error", error);
+async fn start_watch(app: tauri::AppHandle) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        let watch = app.state::<WatchState>();
+
+        let (root, data) = with_engine(&state, |engine| {
+            Ok((engine.snapshot(None)?.root, engine.status()?.database_path))
+        })?;
+        let mut watcher = watch.lock().map_err(|_| "Watcher lock failed")?;
+        let previous = watcher.take();
+        drop(previous);
+        let data = std::path::PathBuf::from(data)
+            .parent()
+            .ok_or("Invalid database directory")?
+            .to_owned();
+        let callback = app.clone();
+        let watched_root = root.clone();
+        let handle = threadmark_core::watch::WatchHandle::start(
+            std::path::Path::new(&root),
+            data,
+            move |result| match result {
+                Ok(_snapshot) => {
+                    let state = callback.state::<AppState>();
+                    let result = with_engine(&state, |engine| {
+                        if engine.snapshot(None)?.root != watched_root {
+                            return Err(threadmark_core::Error::Analysis(
+                                "Repository changed while watching".into(),
+                            ));
+                        }
+                        engine.select_repository(std::path::Path::new(&watched_root))
+                    });
+                    match result {
+                        Ok(overview) => {
+                            let _ = callback.emit("index-updated", overview);
+                        }
+                        Err(error) => {
+                            let _ = callback.emit("watch-error", error);
+                        }
                     }
                 }
-            }
-            Err(error) => {
-                let _ = callback.emit("watch-error", error.to_string());
-            }
-        },
-    )
-    .map_err(|error| error.to_string())?;
-    *watch.lock().map_err(|_| "Watcher lock failed")? = Some(handle);
-    app.emit("watch-status", true)
-        .map_err(|error| error.to_string())
+                Err(error) => {
+                    let _ = callback.emit("watch-error", error.to_string());
+                }
+            },
+        )
+        .map_err(|error| error.to_string())?;
+        *watcher = Some(handle);
+        app.emit("watch-status", true)
+            .map_err(|error| error.to_string())
+    })
+    .await
+    .map_err(|error| format!("Could not start background watcher: {error}"))?
 }
 #[tauri::command]
-async fn export_metadata(state: tauri::State<'_, AppState>) -> Result<Option<String>, String> {
-    let snapshot = with_engine(&state, |engine| engine.export_graph(false))?;
-    let json = serde_json::to_string_pretty(&snapshot).map_err(|error| error.to_string())?;
+async fn export_metadata(app: tauri::AppHandle) -> Result<Option<String>, String> {
     tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        let snapshot = with_engine(&state, |engine| engine.export_graph(false))?;
+        let json = serde_json::to_vec_pretty(&snapshot).map_err(|error| error.to_string())?;
         let path = rfd::FileDialog::new()
             .add_filter("JSON", &["json"])
             .set_file_name("threadmark.json")
             .save_file();
         if let Some(path) = path {
-            std::fs::write(&path, json).map_err(|error| error.to_string())?;
+            export::save(&path, &json).map_err(|error| format!("Could not save metadata export: {error}. Choose a writable folder with enough free space."))?;
             Ok(Some(path.to_string_lossy().into_owned()))
         } else {
             Ok(None)
