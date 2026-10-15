@@ -15,7 +15,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          node-version: '24.15.0'
           cache: npm
           cache-dependency-path: apps/desktop/package-lock.json
       - name: Install repository-pinned Rust toolchain
@@ -44,6 +44,9 @@ jobs:
           cargo test --workspace --locked
           if ($LASTEXITCODE) { throw 'Rust tests failed' }
           ./scripts/generate-notices.ps1
+          git diff --exit-code -- docs/THIRD-PARTY-NOTICES.txt
+          if ($LASTEXITCODE) { throw 'Commit regenerated dependency notices before building a candidate' }
+          ./scripts/test-package-release.ps1
       - name: Check dependency advisories
         run: |
           New-Item -ItemType Directory -Force artifacts | Out-Null
@@ -64,11 +67,7 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force artifacts | Out-Null
           if (-not $env:SIGNING_PFX_BASE64) {
-            Push-Location apps/desktop
-            try {
-              npm run tauri build
-              if ($LASTEXITCODE) { throw 'Native build failed' }
-            } finally { Pop-Location }
+            ./scripts/build-candidate.ps1
             ./scripts/package-release.ps1
             'Unsigned development/release-candidate build. Trusted public Windows signing remains blocked until a real certificate is configured.' | Set-Content artifacts/release/SIGNING-STATUS.txt
           } else {
@@ -80,7 +79,8 @@ jobs:
               $password = ConvertTo-SecureString $env:SIGNING_PFX_PASSWORD -AsPlainText -Force
               $certificate = Import-PfxCertificate -FilePath $pfxPath -CertStoreLocation Cert:\CurrentUser\My -Password $password | Where-Object HasPrivateKey | Select-Object -First 1
               if (-not $certificate) { throw 'No signing private key was imported' }
-              ./scripts/sign-release.ps1 -CertificateThumbprint $certificate.Thumbprint -TimestampUrl $env:SIGNING_TIMESTAMP_URL
+              ./scripts/build-candidate.ps1 -SigningThumbprint $certificate.Thumbprint -TimestampUrl $env:SIGNING_TIMESTAMP_URL
+              ./scripts/package-release.ps1
               'Authenticode signatures validated by the signing script.' | Set-Content artifacts/release/SIGNING-STATUS.txt
             } finally {
               if (Test-Path -LiteralPath $pfxPath) { Remove-Item -LiteralPath $pfxPath -Force }

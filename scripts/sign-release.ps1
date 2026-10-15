@@ -1,7 +1,8 @@
 param(
     [Parameter(Mandatory=$true)][ValidatePattern('^[a-fA-F0-9]{40}$')][string]$CertificateThumbprint,
     [string]$SignTool,
-    [string]$TimestampUrl
+    [string]$TimestampUrl,
+    [switch]$SkipPackaging
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
@@ -42,5 +43,7 @@ try {
     foreach($binary in @('target/release/threadmark.exe','target/release/threadmark-desktop.exe',"target/release/bundle/nsis/Threadmark_${version}_x64-setup.exe")) {
         if ((Get-AuthenticodeSignature -LiteralPath $binary).Status -ne 'Valid') {throw "Signature validation failed: $binary"}
     }
-    & (Join-Path $PSScriptRoot 'package-release.ps1')
+    if (-not $SkipPackaging) {
+        Write-Output 'Signed build complete. Use build-candidate.ps1 -SigningThumbprint then package-release.ps1 for a provenance-checked package.'
+    }
 } finally {Pop-Location}

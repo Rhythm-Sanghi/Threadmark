@@ -30,5 +30,7 @@ jobs:
       - run: cargo build --release -p threadmark-cli --locked
       - run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - run: cargo test --workspace --locked
+      - name: Source packaging regression checks
+        run: ./scripts/test-package-release.ps1
       - run: npm run tauri build -- --no-bundle
         working-directory: apps/desktop
