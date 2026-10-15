@@ -12,10 +12,14 @@ The installer includes the desktop app, CLI, GPL license and dependency notices.
 It installs for the current user and requires an existing WebView2 runtime.
 
 Upgrade from 0.1.0 migrated the database from schema 2 to 3 and preserved the
-selected repository and theme. `scripts/verify-installer.ps1` checks upgrade,
+selected repository and theme. The later isolated
+[qualification](final-qualification-2026-10-15.md) repeats that genuine
+previous-version upgrade for the new local candidate. `scripts/verify-installer.ps1`
+checks the lifecycle from whichever version is currently installed, including
 uninstall/reinstall, registration, binary payloads and preservation of user data.
-It requires the app to be closed and refuses installations outside artifacts/installed.
-The [lifecycle report](installer-lifecycle-windows-0.1.1.json) contains the results.
+It requires the app to be closed and refuses installations outside
+`artifacts/installed`. The historical
+[lifecycle report](installer-lifecycle-windows-0.1.1.json) contains earlier results.
 
 Native checks covered search, map navigation, source and relationship evidence,
 impact, related tests, Git changes, removed-symbol evidence, diagnostics, file

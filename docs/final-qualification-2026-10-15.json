@@ -1,0 +1,479 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-15",
+  "baseline_commit": "1ff28c900bd875c90a42183feac43ff2d4f2dc54",
+  "runtime_commit": "b38e1f234f15e3378f8374394252ae04bf52b7c7",
+  "platform": "Windows 11 Pro Insider Preview 10.0.26220 x64",
+  "benchmark": {
+    "method": "Three alternating baseline/candidate process pairs; each process performs three warmups and five measured operations per case; 300 linked TypeScript modules, one barrel, one consumer, ten tests, tsconfig; release build; cold means new SQLite DB, not flushed OS cache; memory is cumulative process peak",
+    "before": [
+      {
+        "database_bytes": 2535424,
+        "fixture": "300 linked TypeScript modules, a re-export barrel, one consumer, ten tests, and tsconfig",
+        "measured": 5,
+        "peak_working_set_bytes": 23543808,
+        "samples_ms": {
+          "cold": [
+            128.795,
+            105.4673,
+            108.183,
+            96.6452,
+            96.7653
+          ],
+          "config_invalidation": [
+            125.2403,
+            117.9226,
+            122.2881,
+            130.7573,
+            129.0015
+          ],
+          "file_deletion": [
+            120.5171,
+            119.84559999999999,
+            81.4371,
+            89.0826,
+            126.6947
+          ],
+          "import_change": [
+            144.07420000000002,
+            157.22220000000002,
+            164.7259,
+            160.2968,
+            121.53890000000001
+          ],
+          "one_file_update": [
+            77.5943,
+            72.7923,
+            76.1476,
+            133.2623,
+            100.0701
+          ],
+          "reexport_change": [
+            121.84150000000001,
+            117.4372,
+            111.7295,
+            103.4379,
+            119.858
+          ],
+          "unchanged": [
+            86.53280000000001,
+            82.38969999999999,
+            86.326,
+            81.33210000000001,
+            82.4772
+          ],
+          "watcher_refresh": [
+            556.7682000000001,
+            542.4166,
+            517.9451,
+            567.0397,
+            577.3349
+          ]
+        },
+        "schema_version": 1,
+        "warmups": 3
+      },
+      {
+        "database_bytes": 2535424,
+        "fixture": "300 linked TypeScript modules, a re-export barrel, one consumer, ten tests, and tsconfig",
+        "measured": 5,
+        "peak_working_set_bytes": 22708224,
+        "samples_ms": {
+          "cold": [
+            79.581,
+            80.02720000000001,
+            79.1956,
+            75.1403,
+            76.05040000000001
+          ],
+          "config_invalidation": [
+            165.9888,
+            125.0045,
+            130.7205,
+            126.64059999999999,
+            90.0881
+          ],
+          "file_deletion": [
+            53.8188,
+            53.07,
+            52.134899999999995,
+            52.876,
+            52.1043
+          ],
+          "import_change": [
+            123.13889999999999,
+            63.4427,
+            122.0823,
+            106.7312,
+            101.4717
+          ],
+          "one_file_update": [
+            54.1876,
+            54.9129,
+            56.0816,
+            52.9015,
+            55.862700000000004
+          ],
+          "reexport_change": [
+            61.948,
+            59.1206,
+            64.8363,
+            121.6511,
+            135.1422
+          ],
+          "unchanged": [
+            53.712,
+            56.389,
+            55.2939,
+            51.6729,
+            55.0239
+          ],
+          "watcher_refresh": [
+            550.1415,
+            555.7708,
+            552.3536,
+            541.1391,
+            575.5823
+          ]
+        },
+        "schema_version": 1,
+        "warmups": 3
+      },
+      {
+        "database_bytes": 2535424,
+        "fixture": "300 linked TypeScript modules, a re-export barrel, one consumer, ten tests, and tsconfig",
+        "measured": 5,
+        "peak_working_set_bytes": 24006656,
+        "samples_ms": {
+          "cold": [
+            85.73,
+            84.69550000000001,
+            79.0333,
+            89.8739,
+            85.5418
+          ],
+          "config_invalidation": [
+            120.0748,
+            119.5916,
+            119.1538,
+            116.2338,
+            120.1397
+          ],
+          "file_deletion": [
+            54.847699999999996,
+            52.7873,
+            52.1526,
+            63.791700000000006,
+            62.8488
+          ],
+          "import_change": [
+            151.8019,
+            128.572,
+            128.3897,
+            91.2781,
+            109.8618
+          ],
+          "one_file_update": [
+            58.5281,
+            65.81739999999999,
+            65.2209,
+            53.6991,
+            55.7767
+          ],
+          "reexport_change": [
+            100.8578,
+            127.0809,
+            134.4424,
+            132.5413,
+            148.71509999999998
+          ],
+          "unchanged": [
+            56.2844,
+            60.294,
+            53.595499999999994,
+            62.644400000000005,
+            59.957
+          ],
+          "watcher_refresh": [
+            564.2992,
+            498.7181,
+            565.6694,
+            614.0746,
+            539.9942
+          ]
+        },
+        "schema_version": 1,
+        "warmups": 3
+      }
+    ],
+    "after": [
+      {
+        "database_bytes": 2535424,
+        "fixture": "300 linked TypeScript modules, a re-export barrel, one consumer, ten tests, and tsconfig",
+        "measured": 5,
+        "peak_working_set_bytes": 22884352,
+        "samples_ms": {
+          "cold": [
+            77.0175,
+            79.9885,
+            92.1434,
+            88.5478,
+            97.89200000000001
+          ],
+          "config_invalidation": [
+            118.94290000000001,
+            126.1546,
+            119.7561,
+            118.7987,
+            123.779
+          ],
+          "file_deletion": [
+            61.5418,
+            62.784000000000006,
+            60.1483,
+            60.490500000000004,
+            63.1839
+          ],
+          "import_change": [
+            121.8024,
+            127.8667,
+            118.0937,
+            117.4187,
+            122.40379999999999
+          ],
+          "one_file_update": [
+            64.3663,
+            64.6534,
+            58.2152,
+            64.11580000000001,
+            64.8609
+          ],
+          "reexport_change": [
+            123.4672,
+            117.55409999999999,
+            119.9083,
+            127.19890000000001,
+            120.5763
+          ],
+          "unchanged": [
+            75.1132,
+            73.6674,
+            67.0801,
+            70.9691,
+            75.25750000000001
+          ],
+          "watcher_refresh": [
+            521.4114,
+            511.77700000000004,
+            524.5082,
+            556.3664,
+            546.8294999999999
+          ]
+        },
+        "schema_version": 1,
+        "warmups": 3
+      },
+      {
+        "database_bytes": 2535424,
+        "fixture": "300 linked TypeScript modules, a re-export barrel, one consumer, ten tests, and tsconfig",
+        "measured": 5,
+        "peak_working_set_bytes": 23064576,
+        "samples_ms": {
+          "cold": [
+            75.9321,
+            72.2864,
+            76.6657,
+            77.81530000000001,
+            72.7092
+          ],
+          "config_invalidation": [
+            114.9273,
+            117.0753,
+            120.0977,
+            123.549,
+            115.6616
+          ],
+          "file_deletion": [
+            52.803599999999996,
+            54.641799999999996,
+            54.197,
+            54.2102,
+            55.5676
+          ],
+          "import_change": [
+            124.04769999999999,
+            142.0061,
+            113.7774,
+            118.3281,
+            110.9429
+          ],
+          "one_file_update": [
+            56.6045,
+            50.9198,
+            56.9281,
+            52.37929999999999,
+            54.6873
+          ],
+          "reexport_change": [
+            58.37,
+            62.0505,
+            60.975500000000004,
+            111.97229999999999,
+            152.0054
+          ],
+          "unchanged": [
+            54.3862,
+            51.0302,
+            55.588899999999995,
+            51.3181,
+            53.1725
+          ],
+          "watcher_refresh": [
+            575.1919,
+            553.6091,
+            561.6417,
+            565.4491,
+            537.7434
+          ]
+        },
+        "schema_version": 1,
+        "warmups": 3
+      },
+      {
+        "database_bytes": 2535424,
+        "fixture": "300 linked TypeScript modules, a re-export barrel, one consumer, ten tests, and tsconfig",
+        "measured": 5,
+        "peak_working_set_bytes": 23552000,
+        "samples_ms": {
+          "cold": [
+            80.12610000000001,
+            84.0477,
+            92.8701,
+            77.46069999999999,
+            69.9504
+          ],
+          "config_invalidation": [
+            154.64079999999998,
+            145.19879999999998,
+            151.81900000000002,
+            134.9809,
+            135.52
+          ],
+          "file_deletion": [
+            58.2644,
+            64.0084,
+            56.8848,
+            56.863299999999995,
+            59.1005
+          ],
+          "import_change": [
+            113.2113,
+            119.4008,
+            115.0768,
+            115.3119,
+            122.0504
+          ],
+          "one_file_update": [
+            57.409,
+            59.8043,
+            57.3901,
+            60.336800000000004,
+            55.7691
+          ],
+          "reexport_change": [
+            70.0158,
+            130.6683,
+            126.0744,
+            130.7071,
+            131.3898
+          ],
+          "unchanged": [
+            56.0792,
+            51.5085,
+            60.6378,
+            56.9342,
+            58.0088
+          ],
+          "watcher_refresh": [
+            566.3888999999999,
+            545.8944,
+            551.5405,
+            528.1349,
+            548.891
+          ]
+        },
+        "schema_version": 1,
+        "warmups": 3
+      }
+    ]
+  },
+  "build_receipt": {
+    "artifacts": [
+      {
+        "sha256": "990f62af4a3f4d66828bae1aef821fefe23f7ed1c9a40c772e6b37c189ad7253",
+        "path": "target/release/threadmark.exe"
+      },
+      {
+        "sha256": "ddadc5e0b1709005d7c46f03728bf38a1ee124b58af032ec08c1ec6dbb7ef2cc",
+        "path": "target/release/threadmark-desktop.exe"
+      },
+      {
+        "sha256": "05ef0f1f2b79177f23cf52252843e03c738887b0176d339c3824597f95060563",
+        "path": "target/release/bundle/nsis/Threadmark_0.1.1_x64-setup.exe"
+      }
+    ],
+    "schema_version": 1,
+    "commit": "b38e1f234f15e3378f8374394252ae04bf52b7c7"
+  },
+  "package_checksums": [
+    "f918edf97ed6965020a5164fc14ee617702169ebcae67856e10d98dbf5e97896  SOURCE-MANIFEST.json",
+    "05ef0f1f2b79177f23cf52252843e03c738887b0176d339c3824597f95060563  Threadmark_0.1.1_x64-setup.exe",
+    "e04f005db15d368d2286cc4339b0f1d67ee6bdc2503f1b28c2a70040fb0f4e6b  Threadmark-0.1.1-cli-x64.zip",
+    "4e4b06530c4d685ef395caa8ac850a4a795a84293ad85e792fa9de04c6c4f2e8  Threadmark-0.1.1-source.zip"
+  ],
+  "source_archive_verified_git_blobs": 127,
+  "upgrade": {
+    "source_commit": "b38e1f234f15e3378f8374394252ae04bf52b7c7",
+    "schema_before": 2,
+    "schema_after": 3,
+    "theme_preserved": true,
+    "repository_preserved": true,
+    "search_hits": 2,
+    "installed_cli_hash": "990f62af4a3f4d66828bae1aef821fefe23f7ed1c9a40c772e6b37c189ad7253",
+    "installed_desktop_hash": "e34b2d4554316cd95561cd8bb96690da63720895c7e4c6bec40e1fe5cd61ceb4",
+    "notices_and_license_match_source": true,
+    "installer_hash": "05ef0f1f2b79177f23cf52252843e03c738887b0176d339c3824597f95060563"
+  },
+  "reinstall": {
+    "uninstall": true,
+    "reinstall": true,
+    "data_unchanged_on_uninstall": true,
+    "schema": 3,
+    "theme": "dark",
+    "repository": "\\\\?\\C:\\Users\\Test\\Documents\\Threadmark\\artifacts\\upgrade-final-b38\\repository"
+  },
+  "corruption": {
+    "exit_code": 1,
+    "input_unchanged": true,
+    "error": "threadmark: SQLite: file is not a database"
+  },
+  "concurrent_cli": {
+    "first_exit": 0,
+    "second_exit": 0,
+    "schema": 3,
+    "first_source_files": 2,
+    "second_source_files": 2,
+    "repository": "\\\\?\\C:\\Users\\Test\\Documents\\Threadmark\\artifacts\\upgrade-0.1.0-to-candidate\\repository"
+  },
+  "checks": {
+    "rust_tests": 54,
+    "frontend_tests": 19,
+    "fmt": "pass",
+    "clippy": "pass",
+    "frontend_lint_typecheck_build": "pass",
+    "packaging_regressions": "pass",
+    "cargo_vulnerabilities": 0,
+    "npm_vulnerabilities": 0,
+    "signature": "NotSigned"
+  }
+}
