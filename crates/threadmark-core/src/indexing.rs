@@ -410,6 +410,32 @@ pub fn discover_and_parse(
 mod discovery_tests {
     use super::*;
 
+    #[cfg(windows)]
+    #[test]
+    fn junction_boundaries_are_not_traversed_at_or_beyond_the_entry_limit() {
+        let root = tempfile::tempdir().unwrap();
+        let outside = tempfile::tempdir().unwrap();
+        std::fs::write(outside.path().join("secret.ts"), "export const secret = 1;").unwrap();
+        let result = std::process::Command::new("cmd.exe")
+            .args(["/C", "mklink", "/J"])
+            .arg(root.path().join("outside"))
+            .arg(outside.path())
+            .output()
+            .unwrap();
+        assert!(result.status.success());
+        for limit in [0, 1, 2] {
+            let (entries, diagnostics) =
+                discover(root.path(), &AtomicBool::new(false), limit, 64).unwrap();
+            assert!(entries.is_empty());
+            assert!(diagnostics.iter().any(|d| d.code
+                == if limit == 0 {
+                    "entry-limit"
+                } else {
+                    "link-skipped"
+                }));
+        }
+    }
+
     #[test]
     fn exact_limit_is_complete_and_one_more_is_explicitly_partial() {
         let root = tempfile::tempdir().unwrap();

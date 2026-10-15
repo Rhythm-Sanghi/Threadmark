@@ -115,3 +115,40 @@ fn opened_handle_check_retries_long_paths_without_relaxing_the_boundary() {
     );
     assert!(indexing::safe_read(&root, &relative, 2).is_err());
 }
+
+#[cfg(windows)]
+#[test]
+fn unreadable_source_is_diagnosed_and_recovers_after_handle_release() {
+    use std::os::windows::fs::OpenOptionsExt;
+    let root = tempfile::tempdir().unwrap();
+    let data = tempfile::tempdir().unwrap();
+    std::fs::write(
+        root.path().join("blocked.ts"),
+        "export function blocked() {}",
+    )
+    .unwrap();
+    std::fs::write(root.path().join("valid.ts"), "export function valid() {}").unwrap();
+    let locked = std::fs::OpenOptions::new()
+        .read(true)
+        .share_mode(0)
+        .open(root.path().join("blocked.ts"))
+        .unwrap();
+    let engine = Engine::open(Some(data.path())).unwrap();
+    let partial = engine
+        .index_repository(root.path(), &AtomicBool::new(false), |_| {})
+        .unwrap();
+    assert!(
+        partial
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "read-error" && d.path == "blocked.ts")
+    );
+    assert!(partial.nodes.iter().any(|n| n.name == "valid"));
+    assert!(!partial.nodes.iter().any(|n| n.name == "blocked"));
+    drop(locked);
+    let complete = engine
+        .index_repository(root.path(), &AtomicBool::new(false), |_| {})
+        .unwrap();
+    assert!(complete.nodes.iter().any(|n| n.name == "blocked"));
+    assert!(!complete.diagnostics.iter().any(|d| d.code == "read-error"));
+}
