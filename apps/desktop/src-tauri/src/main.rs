@@ -258,7 +258,6 @@ async fn compare_changes(
     }
     let _reset = Reset(&job.running);
     let root = with_engine(&state, |engine| Ok(engine.snapshot(None)?.root))?;
-    let selected_root = root.clone();
     let comparison = tauri::async_runtime::spawn_blocking(move || {
         let engine = Engine::open(None).map_err(|error| error.to_string())?;
         engine
@@ -268,9 +267,6 @@ async fn compare_changes(
     })
     .await
     .map_err(|error| error.to_string())??;
-    with_engine(&state, |engine| {
-        engine.select_repository(std::path::Path::new(&selected_root))
-    })?;
     Ok(comparison)
 }
 
@@ -306,7 +302,7 @@ async fn start_watch(app: tauri::AppHandle) -> Result<(), String> {
             .to_owned();
         let callback = app.clone();
         let watched_root = root.clone();
-        let handle = threadmark_core::watch::WatchHandle::start(
+        let handle = threadmark_core::watch::WatchHandle::start_preserving_selection(
             std::path::Path::new(&root),
             data,
             move |result| match result {

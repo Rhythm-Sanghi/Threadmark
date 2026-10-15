@@ -138,7 +138,26 @@ impl Engine {
         &self,
         path: &Path,
         cancel: &std::sync::atomic::AtomicBool,
+        progress: impl FnMut(&model::Progress),
+    ) -> Result<model::Snapshot, Error> {
+        self.index_repository_with_selection(path, cancel, progress, true)
+    }
+
+    pub(crate) fn index_repository_preserving_selection(
+        &self,
+        path: &Path,
+        cancel: &std::sync::atomic::AtomicBool,
+        progress: impl FnMut(&model::Progress),
+    ) -> Result<model::Snapshot, Error> {
+        self.index_repository_with_selection(path, cancel, progress, false)
+    }
+
+    fn index_repository_with_selection(
+        &self,
+        path: &Path,
+        cancel: &std::sync::atomic::AtomicBool,
         mut progress: impl FnMut(&model::Progress),
+        select: bool,
     ) -> Result<model::Snapshot, Error> {
         let root = indexing::root(path)?;
         // The persisted index remains available on cancellation. Release the old
@@ -228,13 +247,23 @@ impl Engine {
             return Err(Error::Cancelled);
         }
         let started = std::time::Instant::now();
-        self.database.save_index(
-            &root_name,
-            snapshot.indexed_at as i64,
-            &snapshot_json,
-            parsing::ADAPTER_VERSION,
-            &stored,
-        )?;
+        if select {
+            self.database.save_index(
+                &root_name,
+                snapshot.indexed_at as i64,
+                &snapshot_json,
+                parsing::ADAPTER_VERSION,
+                &stored,
+            )?;
+        } else {
+            self.database.save_index_preserving_selection(
+                &root_name,
+                snapshot.indexed_at as i64,
+                &snapshot_json,
+                parsing::ADAPTER_VERSION,
+                &stored,
+            )?;
+        }
         tracing::debug!(
             phase = "sqlite_publication",
             elapsed_ms = started.elapsed().as_secs_f64() * 1000.,

@@ -127,6 +127,29 @@ impl Database {
         adapter: &str,
         files: &[(String, String, Option<String>)],
     ) -> Result<(), Error> {
+        self.save_index_with_selection(root, timestamp, snapshot, adapter, files, true)
+    }
+
+    pub fn save_index_preserving_selection(
+        &self,
+        root: &str,
+        timestamp: i64,
+        snapshot: &str,
+        adapter: &str,
+        files: &[(String, String, Option<String>)],
+    ) -> Result<(), Error> {
+        self.save_index_with_selection(root, timestamp, snapshot, adapter, files, false)
+    }
+
+    fn save_index_with_selection(
+        &self,
+        root: &str,
+        timestamp: i64,
+        snapshot: &str,
+        adapter: &str,
+        files: &[(String, String, Option<String>)],
+        select: bool,
+    ) -> Result<(), Error> {
         let transaction = self.0.unchecked_transaction()?;
         transaction.execute("INSERT INTO repositories(root,indexed_at,snapshot) VALUES (?1,?2,?3) ON CONFLICT(root) DO UPDATE SET indexed_at=excluded.indexed_at,snapshot=excluded.snapshot", rusqlite::params![root, timestamp, snapshot])?;
         transaction.execute("INSERT INTO index_revisions(root,revision) VALUES (?1,1) ON CONFLICT(root) DO UPDATE SET revision=index_revisions.revision+1", [root])?;
@@ -154,7 +177,9 @@ impl Database {
                 }
             }
         }
-        transaction.execute("INSERT INTO settings(key,value) VALUES ('repository',?1) ON CONFLICT(key) DO UPDATE SET value=excluded.value", [root])?;
+        if select {
+            transaction.execute("INSERT INTO settings(key,value) VALUES ('repository',?1) ON CONFLICT(key) DO UPDATE SET value=excluded.value", [root])?;
+        }
         transaction.commit()?;
         Ok(())
     }
