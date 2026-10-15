@@ -27,7 +27,7 @@ try {
                 throw "Binary changed after candidate build: $($artifact.path)"
             }
         }
-        foreach ($path in @('target/release/threadmark.exe', "target/release/bundle/nsis/Threadmark_${version}_x64-setup.exe")) {
+        foreach ($path in @('target/release/threadmark.exe', 'target/release/threadmark-desktop.exe', "target/release/bundle/nsis/Threadmark_${version}_x64-setup.exe")) {
             if ($path -notin $receipt.artifacts.path) { throw "Build receipt missing $path" }
         }
     }

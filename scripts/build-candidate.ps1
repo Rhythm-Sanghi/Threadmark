@@ -24,7 +24,7 @@ try {
     git diff --quiet HEAD --
     if ($LASTEXITCODE -ne 0) { throw 'Tracked files changed during candidate build' }
     $version = (Get-Content -Raw 'apps/desktop/src-tauri/tauri.conf.json' | ConvertFrom-Json).version
-    $artifacts = @('target/release/threadmark.exe', "target/release/bundle/nsis/Threadmark_${version}_x64-setup.exe") | ForEach-Object {
+    $artifacts = @('target/release/threadmark.exe', 'target/release/threadmark-desktop.exe', "target/release/bundle/nsis/Threadmark_${version}_x64-setup.exe") | ForEach-Object {
         @{ path=$_; sha256=(Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash.ToLowerInvariant() }
     }
     New-Item -ItemType Directory -Force (Split-Path $receiptPath) | Out-Null

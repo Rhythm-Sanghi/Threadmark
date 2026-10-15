@@ -52,5 +52,21 @@ try {
     $rejected = $false
     try { & ./scripts/package-release.ps1 -OutputDirectory "$fixture/artifacts/wrong-receipt" } catch { $rejected = $_.Exception.Message -like '*another source commit*' }
     if (-not $rejected) { throw 'Binary packaging accepted another commit receipt' }
-    Write-Output "PASS: immutable source, untracked/ignored exclusion, dotfiles, repeatability, manifest, hashes, stale output, dirty binary and missing/wrong receipt rejection. Fixture: $fixture"
+    New-Item -ItemType Directory -Force -Path "$fixture/target/release/bundle/nsis" | Out-Null
+    foreach ($path in @('target/release/threadmark.exe','target/release/threadmark-desktop.exe','target/release/bundle/nsis/Threadmark_0.1.1_x64-setup.exe')) {
+        [IO.File]::WriteAllText((Join-Path $fixture $path), "fixture binary: $path")
+    }
+    $artifacts = @('target/release/threadmark.exe','target/release/threadmark-desktop.exe','target/release/bundle/nsis/Threadmark_0.1.1_x64-setup.exe') | ForEach-Object {
+        @{ path=$_; sha256=(Get-FileHash -LiteralPath (Join-Path $fixture $_)).Hash.ToLowerInvariant() }
+    }
+    @{schema_version=1;commit=$commit;artifacts=@($artifacts)} | ConvertTo-Json -Depth 5 | Set-Content "$fixture/artifacts/release-build.json"
+    & ./scripts/package-release.ps1 -OutputDirectory "$fixture/artifacts/valid-binary"
+    $binaryManifest = Get-Content -Raw "$fixture/artifacts/valid-binary/SOURCE-MANIFEST.json" | ConvertFrom-Json
+    if ($binaryManifest.binaries.Count -ne 3 -or 'target/release/threadmark-desktop.exe' -notin $binaryManifest.binaries.path) { throw 'Binary manifest omitted desktop executable' }
+    $artifacts = @($artifacts | Where-Object path -ne 'target/release/threadmark-desktop.exe')
+    @{schema_version=1;commit=$commit;artifacts=$artifacts} | ConvertTo-Json -Depth 5 | Set-Content "$fixture/artifacts/release-build.json"
+    $rejected = $false
+    try { & ./scripts/package-release.ps1 -OutputDirectory "$fixture/artifacts/missing-desktop-hash" } catch { $rejected = $_.Exception.Message -like '*missing target/release/threadmark-desktop.exe*' }
+    if (-not $rejected) { throw 'Binary packaging accepted a receipt without the desktop executable' }
+    Write-Output "PASS: immutable source, untracked/ignored exclusion, dotfiles, repeatability, manifest, hashes, stale output, dirty binary and missing/wrong/partial receipt rejection. Fixture: $fixture"
 } finally { Pop-Location }
