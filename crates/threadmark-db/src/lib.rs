@@ -88,6 +88,15 @@ impl Database {
             .optional()?)
     }
 
+    pub fn snapshot_with_revision(&self, root: &str) -> Result<Option<(String, i64)>, Error> {
+        // One SQLite statement observes one committed revision. Reading these
+        // separately can label an old graph with a newer writer's revision.
+        Ok(self.0.query_row(
+            "SELECT r.snapshot, COALESCE(v.revision, 0) FROM repositories r LEFT JOIN index_revisions v ON v.root=r.root WHERE r.root=?1",
+            [root], |row| Ok((row.get(0)?, row.get(1)?)),
+        ).optional()?)
+    }
+
     pub fn repositories(&self) -> Result<Vec<(String, i64)>, Error> {
         let mut statement = self
             .0
@@ -154,6 +163,38 @@ impl Database {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn snapshot_and_revision_stay_paired_during_concurrent_publication() {
+        use std::sync::{
+            Arc,
+            atomic::{AtomicBool, Ordering},
+        };
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("revisions.db");
+        let reader = Database::open(&path).unwrap();
+        reader.save_index("root", 1, "1", "adapter", &[]).unwrap();
+        let running = Arc::new(AtomicBool::new(true));
+        let writing = running.clone();
+        let worker = std::thread::spawn(move || {
+            let writer = Database::open(&path).unwrap();
+            for revision in 2..=100 {
+                writer
+                    .save_index("root", revision, &revision.to_string(), "adapter", &[])
+                    .unwrap();
+            }
+            writing.store(false, Ordering::Release);
+        });
+        while running.load(Ordering::Acquire) {
+            let (snapshot, revision) = reader.snapshot_with_revision("root").unwrap().unwrap();
+            assert_eq!(snapshot.parse::<i64>().unwrap(), revision);
+        }
+        worker.join().unwrap();
+        assert_eq!(
+            reader.snapshot_with_revision("root").unwrap().unwrap(),
+            ("100".into(), 100)
+        );
+    }
 
     #[test]
     fn repaired_cache_replaces_same_hash_and_failed_publication_rolls_back() {

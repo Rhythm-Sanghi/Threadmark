@@ -153,6 +153,14 @@ impl Engine {
             .filter_map(|(path, hash, parsed)| {
                 serde_json::from_str(&parsed)
                     .ok()
+                    .filter(|parsed: &model::ParsedFile| {
+                        parsed.path == path
+                            && parsed.hash == hash
+                            && parsed
+                                .nodes
+                                .first()
+                                .is_some_and(|node| node.kind == "file" && node.path == path)
+                    })
                     .map(|parsed| (path, (hash, parsed)))
             })
             .collect();
@@ -250,10 +258,14 @@ impl Engine {
                     Error::Analysis("No repository indexed. Run threadmark index <path>".into())
                 })?,
         };
-        let json = self.database.snapshot(&root)?.ok_or_else(|| {
+        Ok(self.load_snapshot(&root)?.0)
+    }
+
+    fn load_snapshot(&self, root: &str) -> Result<(model::Snapshot, i64), Error> {
+        let (json, revision) = self.database.snapshot_with_revision(root)?.ok_or_else(|| {
             Error::Analysis(format!("No index for {root}. Run threadmark index <path>"))
         })?;
-        Ok(serde_json::from_str(&json)?)
+        Ok((serde_json::from_str(&json)?, revision))
     }
 
     pub fn repositories(&self) -> Result<Vec<(String, i64)>, Error> {
@@ -291,9 +303,9 @@ impl Engine {
                 Error::Analysis("No repository indexed. Run threadmark index <path>".into())
             })?;
         let revision = self.database.index_revision(&root)?.unwrap_or(0);
-        *self.active_root.borrow_mut() = Some(root);
+        *self.active_root.borrow_mut() = Some(root.clone());
         if self.graph.borrow().is_none() || revision != self.graph_revision.get() {
-            let snapshot = self.snapshot(None)?;
+            let (snapshot, revision) = self.load_snapshot(&root)?;
             *self.graph.borrow_mut() = Some(graph::Graph::new(snapshot));
             self.graph_revision.set(revision);
         }
@@ -302,10 +314,10 @@ impl Engine {
     }
 
     pub fn select_repository(&self, path: &Path) -> Result<graph::Overview, Error> {
-        let snapshot = self.snapshot(Some(path))?;
+        let root = indexing::root_string(&indexing::root(path)?);
+        let (snapshot, revision) = self.load_snapshot(&root)?;
         self.database.set_setting("repository", &snapshot.root)?;
-        self.graph_revision
-            .set(self.database.index_revision(&snapshot.root)?.unwrap_or(0));
+        self.graph_revision.set(revision);
         *self.active_root.borrow_mut() = Some(snapshot.root.clone());
         *self.graph.borrow_mut() = Some(graph::Graph::new(snapshot));
         self.query(|graph| Ok(graph.overview()))

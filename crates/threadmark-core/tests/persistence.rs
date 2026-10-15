@@ -2,6 +2,50 @@ use std::sync::atomic::AtomicBool;
 use threadmark_core::Engine;
 
 #[test]
+fn invalid_json_and_empty_cached_files_are_reparsed_and_repaired() {
+    let root = tempfile::tempdir().unwrap();
+    let data = tempfile::tempdir().unwrap();
+    let engine = Engine::open(Some(data.path())).unwrap();
+    let cancel = AtomicBool::new(false);
+    std::fs::write(root.path().join("work.ts"), "export function work() {}").unwrap();
+    let snapshot = engine
+        .index_repository(root.path(), &cancel, |_| {})
+        .unwrap();
+    let db = threadmark_db::Database::open(&data.path().join("threadmark.db")).unwrap();
+    let adapter = threadmark_core::parsing::ADAPTER_VERSION;
+    let (path, hash, json) = db.cached_files(&snapshot.root, adapter).unwrap().remove(0);
+    let mut empty: serde_json::Value = serde_json::from_str(&json).unwrap();
+    empty["nodes"] = serde_json::json!([]);
+    for corrupt in [
+        "{broken".to_string(),
+        serde_json::to_string(&empty).unwrap(),
+    ] {
+        db.save_index(
+            &snapshot.root,
+            snapshot.indexed_at as i64,
+            &serde_json::to_string(&snapshot).unwrap(),
+            adapter,
+            &[(path.clone(), hash.clone(), Some(corrupt))],
+        )
+        .unwrap();
+        let repaired = engine
+            .index_repository(root.path(), &cancel, |_| {})
+            .unwrap();
+        assert_eq!(repaired.progress.parsed_files, 1);
+        assert_eq!(repaired.progress.reused_files, 0);
+        assert!(repaired.nodes.iter().any(|node| node.name == "work"));
+        assert_eq!(
+            engine
+                .index_repository(root.path(), &cancel, |_| {})
+                .unwrap()
+                .progress
+                .reused_files,
+            1
+        );
+    }
+}
+
+#[test]
 fn incremental_edits_deletions_renames_and_config_match_a_clean_index() {
     let root = tempfile::tempdir().unwrap();
     let data = tempfile::tempdir().unwrap();
