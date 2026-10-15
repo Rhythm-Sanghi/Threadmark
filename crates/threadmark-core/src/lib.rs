@@ -183,10 +183,16 @@ impl Engine {
                 ))
             })
             .collect::<Result<Vec<_>, serde_json::Error>>()?;
+        let snapshot_json = serde_json::to_string(&snapshot)?;
+        // Serialization can take seconds for a large graph. Honour a cancel
+        // request received during that work before entering the transaction.
+        if cancel.load(std::sync::atomic::Ordering::Relaxed) {
+            return Err(Error::Cancelled);
+        }
         self.database.save_index(
             &root_name,
             snapshot.indexed_at as i64,
-            &serde_json::to_string(&snapshot)?,
+            &snapshot_json,
             parsing::ADAPTER_VERSION,
             &stored,
         )?;

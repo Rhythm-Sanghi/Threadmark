@@ -136,7 +136,9 @@ impl Database {
             }
         }
         {
-            let mut insert = transaction.prepare("INSERT INTO parsed_files(root,path,content_hash,adapter_version,parsed) VALUES (?1,?2,?3,?4,?5) ON CONFLICT(root,path) DO UPDATE SET content_hash=excluded.content_hash,adapter_version=excluded.adapter_version,parsed=excluded.parsed WHERE parsed_files.content_hash!=excluded.content_hash OR parsed_files.adapter_version!=excluded.adapter_version")?;
+            // Some(parsed) means core actually parsed this file, including repair
+            // of malformed cache JSON with an otherwise unchanged hash/version.
+            let mut insert = transaction.prepare("INSERT INTO parsed_files(root,path,content_hash,adapter_version,parsed) VALUES (?1,?2,?3,?4,?5) ON CONFLICT(root,path) DO UPDATE SET content_hash=excluded.content_hash,adapter_version=excluded.adapter_version,parsed=excluded.parsed")?;
             for (path, hash, parsed) in files {
                 if let Some(parsed) = parsed {
                     insert.execute(rusqlite::params![root, path, hash, adapter, parsed])?;
@@ -152,6 +154,29 @@ impl Database {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn repaired_cache_replaces_same_hash_and_failed_publication_rolls_back() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("atomic.db");
+        let db = Database::open(&path).unwrap();
+        let files = |parsed: &str| vec![("work.ts".into(), "hash".into(), Some(parsed.into()))];
+        db.save_index("root", 1, "previous", "adapter", &files("malformed"))
+            .unwrap();
+        db.save_index("root", 2, "repaired", "adapter", &files("valid"))
+            .unwrap();
+        assert_eq!(db.cached_files("root", "adapter").unwrap()[0].2, "valid");
+        let revision = db.index_revision("root").unwrap();
+        db.0.execute_batch("CREATE TRIGGER fail_cache BEFORE UPDATE ON parsed_files BEGIN SELECT RAISE(ABORT, 'injected write failure'); END;").unwrap();
+        assert!(
+            db.save_index("root", 3, "must not publish", "adapter", &files("new"))
+                .is_err()
+        );
+        assert_eq!(db.snapshot("root").unwrap().as_deref(), Some("repaired"));
+        assert_eq!(db.index_revision("root").unwrap(), revision);
+        assert_eq!(db.cached_files("root", "adapter").unwrap()[0].2, "valid");
+        assert_eq!(db.setting("repository").unwrap().as_deref(), Some("root"));
+    }
 
     #[test]
     fn schema_two_upgrade_preserves_snapshots_caches_and_settings() {

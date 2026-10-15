@@ -121,6 +121,79 @@ fn excluded(name: &str) -> bool {
     )
 }
 
+// Keep traversal decisions in the visitor: Skip prunes a boundary and Quit
+// stops enumeration even when every remaining entry would have been rejected.
+// A single walker thread preserves bounded memory and predictable disk pressure.
+type DiscoveryEntries = Vec<Result<ignore::DirEntry, ignore::Error>>;
+
+fn discover(
+    root: &Path,
+    cancel: &AtomicBool,
+    max_entries: usize,
+    max_depth: usize,
+) -> Result<(DiscoveryEntries, Vec<Diagnostic>), Error> {
+    use ignore::WalkState;
+    let collected = std::sync::Mutex::new((Vec::new(), Vec::new(), 0usize));
+    WalkBuilder::new(root)
+        .hidden(false)
+        .parents(false)
+        .git_global(false)
+        .git_exclude(false)
+        .require_git(false)
+        .follow_links(false)
+        .max_depth(Some(max_depth))
+        .threads(1)
+        .add_custom_ignore_filename(".threadmarkignore")
+        .build_parallel()
+        .run(|| Box::new(|entry| {
+            if cancel.load(Ordering::Relaxed) {
+                return WalkState::Quit;
+            }
+            let mut state = collected.lock().expect("discovery state");
+            let (entries, diagnostics, visited) = &mut *state;
+            if entry.as_ref().is_ok_and(|entry| entry.depth() == 0) {
+                return WalkState::Continue;
+            }
+            if *visited == max_entries {
+                diagnostics.push(Diagnostic {
+                    path: String::new(), line: 0, code: "entry-limit".into(),
+                    message: format!("Repository discovery exceeds the {max_entries} entry limit; remaining entries were skipped"),
+                });
+                return WalkState::Quit;
+            }
+            *visited += 1;
+            if let Ok(entry) = &entry {
+                if excluded(&entry.file_name().to_string_lossy()) {
+                    return WalkState::Skip;
+                }
+                let code = match entry.path().symlink_metadata() {
+                    Ok(metadata) if is_link(&metadata) => Some("link-skipped"),
+                    Ok(metadata) if metadata.is_dir() && entry.depth() >= max_depth => Some("depth-limit"),
+                    Err(_) => Some("metadata-error"),
+                    _ => None,
+                };
+                if let Some(code) = code {
+                    diagnostics.push(Diagnostic {
+                        path: entry.path().strip_prefix(root).unwrap_or(entry.path()).to_string_lossy().replace('\\', "/"),
+                        line: 0, code: code.into(),
+                        message: "Entry excluded by repository boundary or discovery limit".into(),
+                    });
+                    return WalkState::Skip;
+                }
+                if !entry.file_type().is_some_and(|kind| kind.is_file()) && entry.error().is_none() {
+                    return WalkState::Continue;
+                }
+            }
+            entries.push(entry);
+            WalkState::Continue
+        }));
+    if cancel.load(Ordering::Relaxed) {
+        return Err(Error::Cancelled);
+    }
+    let (entries, diagnostics, _) = collected.into_inner().expect("discovery state");
+    Ok((entries, diagnostics))
+}
+
 pub fn discover_and_parse(
     root: &Path,
     cache: &mut HashMap<String, (String, ParsedFile)>,
@@ -138,68 +211,12 @@ pub fn discover_and_parse(
     let mut languages = std::collections::BTreeSet::new();
     let mut total = 0;
     let mut references = 0usize;
-    let mut walker = WalkBuilder::new(root);
-    let skipped = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
-    let filter_skipped = skipped.clone();
-    let filter_root = root.to_owned();
-    let entries = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
-    let filter_entries = entries.clone();
-    walker
-        .hidden(false)
-        .parents(false)
-        .git_global(false)
-        .git_exclude(false)
-        .require_git(false)
-        .follow_links(false)
-        .max_depth(Some(64))
-        .add_custom_ignore_filename(".threadmarkignore")
-        .filter_entry(move |entry| {
-            if filter_entries.fetch_add(1, Ordering::Relaxed) > 200_000 {
-                return true;
-            }
-            if entry.depth() == 0 {
-                return true;
-            }
-            if excluded(&entry.file_name().to_string_lossy()) {
-                return false;
-            }
-            let code = match entry.path().symlink_metadata() {
-                Ok(metadata) if is_link(&metadata) => Some("link-skipped"),
-                Ok(metadata) if metadata.is_dir() && entry.depth() >= 64 => Some("depth-limit"),
-                Err(_) => Some("metadata-error"),
-                _ => None,
-            };
-            if let Some(code) = code {
-                if let Ok(mut skipped) = filter_skipped.lock() {
-                    skipped.push(Diagnostic {
-                        path: entry
-                            .path()
-                            .strip_prefix(&filter_root)
-                            .unwrap_or(entry.path())
-                            .to_string_lossy()
-                            .replace('\\', "/"),
-                        line: 0,
-                        code: code.into(),
-                        message: "Entry excluded by repository boundary or discovery limit".into(),
-                    });
-                }
-                return false;
-            }
-            true
-        });
+    let (entries, skipped) = discover(root, cancel, 200_000, 64)?;
+    diagnostics.extend(skipped);
     if root.join(".git").exists() {
         project_files.push(".git".into());
     }
-    for entry in walker.build() {
-        if entries.load(Ordering::Relaxed) > 200_000 {
-            diagnostics.push(Diagnostic {
-                path: String::new(),
-                line: 0,
-                code: "entry-limit".into(),
-                message: "Repository discovery exceeds the 200,000 entry limit".into(),
-            });
-            break;
-        }
+    for entry in entries {
         if cancel.load(Ordering::Relaxed) {
             return Err(Error::Cancelled);
         }
@@ -347,9 +364,6 @@ pub fn discover_and_parse(
         .collect();
     state.phase = "Saving index".into();
     progress(&state);
-    if let Ok(mut skipped) = skipped.lock() {
-        diagnostics.append(&mut skipped);
-    }
     let snapshot = Snapshot {
         schema_version: 1,
         root: root_name,
@@ -370,4 +384,63 @@ pub fn discover_and_parse(
         progress: state,
     };
     Ok((snapshot, files))
+}
+
+#[cfg(test)]
+mod discovery_tests {
+    use super::*;
+
+    #[test]
+    fn exact_limit_is_complete_and_one_more_is_explicitly_partial() {
+        let root = tempfile::tempdir().unwrap();
+        for name in ["a.ts", "b.ts"] {
+            std::fs::write(root.path().join(name), "function work() {}").unwrap();
+        }
+        let cancel = AtomicBool::new(false);
+        let (entries, diagnostics) = discover(root.path(), &cancel, 2, 64).unwrap();
+        assert_eq!(entries.len(), 2);
+        assert!(diagnostics.is_empty());
+        std::fs::write(root.path().join("c.ts"), "function other() {}").unwrap();
+        let (entries, diagnostics) = discover(root.path(), &cancel, 2, 64).unwrap();
+        assert_eq!(entries.len(), 2);
+        assert_eq!(
+            diagnostics
+                .iter()
+                .filter(|d| d.code == "entry-limit")
+                .count(),
+            1
+        );
+    }
+
+    #[test]
+    fn rejected_entries_count_without_traversing_their_children() {
+        let root = tempfile::tempdir().unwrap();
+        for index in 0..20 {
+            let folder = root.path().join(format!("p{index}/node_modules"));
+            std::fs::create_dir_all(&folder).unwrap();
+            std::fs::write(folder.join("secret.ts"), "function secret() {}").unwrap();
+        }
+        let (entries, diagnostics) = discover(root.path(), &AtomicBool::new(false), 8, 64).unwrap();
+        assert!(entries.is_empty());
+        assert!(diagnostics.iter().any(|d| d.code == "entry-limit"));
+        let (entries, diagnostics) =
+            discover(root.path(), &AtomicBool::new(false), 40, 64).unwrap();
+        assert!(entries.is_empty());
+        assert!(diagnostics.is_empty());
+    }
+
+    #[test]
+    fn depth_and_pre_cancel_are_enforced_even_without_source_files() {
+        let root = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(root.path().join("a/b/c/d")).unwrap();
+        std::fs::write(root.path().join("a/b/c/d/work.ts"), "function work() {}").unwrap();
+        let (entries, diagnostics) =
+            discover(root.path(), &AtomicBool::new(false), 100, 3).unwrap();
+        assert!(entries.is_empty());
+        assert!(diagnostics.iter().any(|d| d.code == "depth-limit"));
+        assert!(matches!(
+            discover(root.path(), &AtomicBool::new(true), 100, 64),
+            Err(Error::Cancelled)
+        ));
+    }
 }
