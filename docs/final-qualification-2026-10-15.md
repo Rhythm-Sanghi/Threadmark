@@ -157,10 +157,11 @@ cover the produced ZIP; a damaged downloaded copy should fail checksum checking.
 
 **VERIFIED:** The earlier `c43b470` native session reindexed a fixture, searched,
 inspected the map and source, started/stopped watching, exported metadata through
-the Windows dialog, and checked a narrow map and Settings. The final runtime was
-also launched as an actual Windows executable; the welcome screen and labeled
-controls appeared through Windows accessibility inspection. The final installer
-installed byte-verified desktop and CLI binaries.
+the Windows dialog, and checked a narrow map and Settings. A desktop executable
+from `b6bc719` (the same runtime code as `b38e1f2`) launched and showed the
+welcome screen and labeled controls through Windows accessibility inspection.
+The final `b38e1f2` installer installed byte-verified desktop and CLI binaries;
+that exact installed desktop executable was not launched for a complete workflow.
 
 **NOT VERIFIED:** The complete open→index→search→evidence→impact→Git changes→tests
 →export→reopen flow, rapid switching while queries run, 200% WebView zoom,
