@@ -26,6 +26,11 @@ fn peak_memory() -> usize {
     }
 }
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .with_writer(std::io::stderr)
+        .with_ansi(false)
+        .init();
     let mut runs = Vec::new();
     for functions in [1000, 10_000, 100_000] {
         let root = tempfile::tempdir()?;

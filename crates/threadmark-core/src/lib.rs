@@ -145,6 +145,7 @@ impl Engine {
         // query graph before constructing a replacement to limit peak memory.
         *self.graph.borrow_mut() = None;
         let root_name = indexing::root_string(&root);
+        let started = std::time::Instant::now();
         let mut cache: std::collections::HashMap<String, (String, model::ParsedFile)> = self
             .database
             .cached_files(&root_name, parsing::ADAPTER_VERSION)?
@@ -155,20 +156,44 @@ impl Engine {
                     .map(|parsed| (path, (hash, parsed)))
             })
             .collect();
+        tracing::debug!(
+            phase = "cache_load",
+            elapsed_ms = started.elapsed().as_secs_f64() * 1000.,
+            "Index phase"
+        );
         let cached_hashes: std::collections::HashMap<_, _> = cache
             .iter()
             .map(|(path, (hash, _))| (path.clone(), hash.clone()))
             .collect();
+        let started = std::time::Instant::now();
         let (mut snapshot, files) =
             indexing::discover_and_parse(&root, &mut cache, cancel, &mut progress)?;
+        tracing::debug!(
+            phase = "discovery_read_parse",
+            elapsed_ms = started.elapsed().as_secs_f64() * 1000.,
+            "Index phase"
+        );
         drop(cache);
+        let started = std::time::Instant::now();
         resolution::resolve(&root, &files, &mut snapshot);
+        tracing::debug!(
+            phase = "resolution",
+            elapsed_ms = started.elapsed().as_secs_f64() * 1000.,
+            "Index phase"
+        );
+        let started = std::time::Instant::now();
         snapshot.diagnostics.extend(cycles::diagnostics(&snapshot));
+        tracing::debug!(
+            phase = "cycles",
+            elapsed_ms = started.elapsed().as_secs_f64() * 1000.,
+            "Index phase"
+        );
         snapshot.progress.relationships = snapshot.edges.len();
         progress(&snapshot.progress);
         if cancel.load(std::sync::atomic::Ordering::Relaxed) {
             return Err(Error::Cancelled);
         }
+        let started = std::time::Instant::now();
         let stored = files
             .iter()
             .map(|file| {
@@ -184,11 +209,17 @@ impl Engine {
             })
             .collect::<Result<Vec<_>, serde_json::Error>>()?;
         let snapshot_json = serde_json::to_string(&snapshot)?;
+        tracing::debug!(
+            phase = "serialization",
+            elapsed_ms = started.elapsed().as_secs_f64() * 1000.,
+            "Index phase"
+        );
         // Serialization can take seconds for a large graph. Honour a cancel
         // request received during that work before entering the transaction.
         if cancel.load(std::sync::atomic::Ordering::Relaxed) {
             return Err(Error::Cancelled);
         }
+        let started = std::time::Instant::now();
         self.database.save_index(
             &root_name,
             snapshot.indexed_at as i64,
@@ -196,6 +227,11 @@ impl Engine {
             parsing::ADAPTER_VERSION,
             &stored,
         )?;
+        tracing::debug!(
+            phase = "sqlite_publication",
+            elapsed_ms = started.elapsed().as_secs_f64() * 1000.,
+            "Index phase"
+        );
         // Query adjacency is loaded lazily; do not duplicate the returned graph.
         *self.graph.borrow_mut() = None;
         *self.active_root.borrow_mut() = Some(root_name);

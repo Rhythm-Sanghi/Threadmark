@@ -2,6 +2,79 @@ use std::sync::atomic::AtomicBool;
 use threadmark_core::Engine;
 
 #[test]
+fn incremental_edits_deletions_renames_and_config_match_a_clean_index() {
+    let root = tempfile::tempdir().unwrap();
+    let data = tempfile::tempdir().unwrap();
+    let engine = Engine::open(Some(data.path())).unwrap();
+    let write = |path: &str, source: &str| std::fs::write(root.path().join(path), source).unwrap();
+    write("a.ts", "export function work() {} ");
+    write("b.ts", "export function work() { return 2; }");
+    write("barrel.ts", "export {work as aliased} from '@target';");
+    write(
+        "main.ts",
+        "import {aliased} from './barrel'; export function run(){aliased();}",
+    );
+    write("work.py", "def work():\n    return 1\n");
+    write(
+        "use.py",
+        "from work import work as alias\ndef run():\n    return alias()\n",
+    );
+    write("broken.ts", "export function broken( {");
+    write("unsupported.rs", "fn unsupported() {}");
+    write(
+        "tsconfig.json",
+        r#"{"compilerOptions":{"paths":{"@target":["./a.ts"]}}}"#,
+    );
+    let signature = |snapshot: threadmark_core::model::Snapshot| {
+        let mut nodes: Vec<_> = snapshot
+            .nodes
+            .iter()
+            .map(|node| serde_json::to_string(node).unwrap())
+            .collect();
+        let mut edges: Vec<_> = snapshot
+            .edges
+            .iter()
+            .map(|edge| serde_json::to_string(edge).unwrap())
+            .collect();
+        let mut diagnostics: Vec<_> = snapshot
+            .diagnostics
+            .iter()
+            .map(|d| serde_json::to_string(d).unwrap())
+            .collect();
+        nodes.sort();
+        edges.sort();
+        diagnostics.sort();
+        (nodes, edges, diagnostics)
+    };
+    for step in 0..6 {
+        match step {
+            1 => write("a.ts", "export function work(){return 3;}"),
+            2 => {
+                std::fs::remove_file(root.path().join("a.ts")).unwrap();
+            }
+            3 => {
+                std::fs::rename(root.path().join("b.ts"), root.path().join("renamed.ts")).unwrap();
+            }
+            4 => write(
+                "tsconfig.json",
+                r#"{"compilerOptions":{"paths":{"@target":["./renamed.ts"]}}}"#,
+            ),
+            5 => write("work.py", "def changed():\n    return 2\n"),
+            _ => (),
+        }
+        let incremental = engine
+            .index_repository(root.path(), &AtomicBool::new(false), |_| {})
+            .unwrap();
+        let clean_data = tempfile::tempdir().unwrap();
+        let clean = Engine::open(Some(clean_data.path()))
+            .unwrap()
+            .index_repository(root.path(), &AtomicBool::new(false), |_| {})
+            .unwrap();
+        assert_eq!(signature(incremental), signature(clean), "step {step}");
+    }
+}
+
+#[test]
 fn cancelled_or_failed_refresh_preserves_the_exact_previous_snapshot() {
     use std::sync::atomic::Ordering;
     let root = tempfile::tempdir().unwrap();

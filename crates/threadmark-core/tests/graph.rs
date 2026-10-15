@@ -93,3 +93,25 @@ fn junctions_cannot_escape_or_recurse() {
     assert!(snapshot.nodes.is_empty());
     assert!(indexing::safe_read(repository.path(), "outside/secret.ts", 1024).is_err());
 }
+
+#[cfg(windows)]
+#[test]
+fn opened_handle_check_retries_long_paths_without_relaxing_the_boundary() {
+    let repository = tempfile::tempdir().unwrap();
+    let root = repository.path().canonicalize().unwrap();
+    let relative = format!(
+        "{}/work.ts",
+        std::iter::repeat_n("long_directory_segment", 26)
+            .collect::<Vec<_>>()
+            .join("/")
+    );
+    let path = root.join(&relative);
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(&path, "export function long_path() {}").unwrap();
+    assert!(path.as_os_str().len() > 512);
+    assert_eq!(
+        indexing::safe_read(&root, &relative, 1024).unwrap(),
+        "export function long_path() {}"
+    );
+    assert!(indexing::safe_read(&root, &relative, 2).is_err());
+}

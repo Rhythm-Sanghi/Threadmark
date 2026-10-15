@@ -57,10 +57,12 @@ pub fn safe_read(root: &Path, relative: &str, max: u64) -> Result<String, String
     #[cfg(windows)]
     {
         use std::os::windows::io::AsRawHandle;
-        let mut buffer = vec![0u16; 32768];
+        // Most paths fit in this small buffer. Retry long paths using the size
+        // returned for this same open handle, retaining the Windows path bound.
+        let mut buffer = vec![0u16; 512];
         // Verify the opened handle, not another path lookup, before reading bytes.
         // This closes the junction-swap gap between canonicalization and opening.
-        let count = unsafe {
+        let mut count = unsafe {
             windows_sys::Win32::Storage::FileSystem::GetFinalPathNameByHandleW(
                 file.as_raw_handle() as _,
                 buffer.as_mut_ptr(),
@@ -68,6 +70,17 @@ pub fn safe_read(root: &Path, relative: &str, max: u64) -> Result<String, String
                 0,
             )
         } as usize;
+        if count >= buffer.len() && count < 32768 {
+            buffer.resize(count + 1, 0);
+            count = unsafe {
+                windows_sys::Win32::Storage::FileSystem::GetFinalPathNameByHandleW(
+                    file.as_raw_handle() as _,
+                    buffer.as_mut_ptr(),
+                    buffer.len() as u32,
+                    0,
+                )
+            } as usize;
+        }
         if count == 0 || count >= buffer.len() {
             return Err("Could not verify opened source handle boundary".into());
         }
@@ -211,7 +224,14 @@ pub fn discover_and_parse(
     let mut languages = std::collections::BTreeSet::new();
     let mut total = 0;
     let mut references = 0usize;
+    progress(&state);
+    let started = std::time::Instant::now();
     let (entries, skipped) = discover(root, cancel, 200_000, 64)?;
+    tracing::debug!(
+        phase = "discovery",
+        elapsed_ms = started.elapsed().as_secs_f64() * 1000.,
+        "Index phase"
+    );
     diagnostics.extend(skipped);
     if root.join(".git").exists() {
         project_files.push(".git".into());
